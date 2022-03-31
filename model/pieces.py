@@ -745,7 +745,8 @@ class King:
         return 0
 
     def _unckeck_from_rook(self, pos, stf_int, str_int):
-        if abs(str_int-pos[0]) != 0 and abs(stf_int-pos[1]) != 0:
+        if (abs(str_int-pos[0]) != 0 and abs(stf_int-pos[1]) != 0) or \
+            (abs(str_int-pos[0]) == 0 and abs(stf_int-pos[1]) == 0):
             return 1
         return 0
 

@@ -65,9 +65,12 @@ class MainBody(tk.Tk):
         for w in self.board.previous_move:
             self.board.restore_label_colour(w)
             move_no = self.get_number_of_label(str(w))
+            r, f = self.board.get_rank_and_file_from_label(str(w))
             new_m = '' if move_no == 64 else str(65-move_no)
             self.board.children[f"!label{new_m}"].configure(
-                bg=self.board.clicked_or_released_colour)
+                bg=self.board.clicked_or_released_colour[(r+f) % 2])
+            # self.board.children[f"!label{new_m}"].configure(
+            #     bg=self.board.clicked_or_released_colour)
             new_prev_move.append(self.board.children[f"!label{new_m}"])
         self.board.previous_move = new_prev_move
 
@@ -83,8 +86,8 @@ class MainBody(tk.Tk):
         
     def new_game_command(self):
         self.board.reset_variables()
-        self.board_ranks.display_ranks()
-        self.board_files.display_files()
+        self.board_ranks.reset_variables()
+        self.board_files.reset_variables()
 
     def add_buttons(self):
         flip_button = tk.Button(self, text='Flip board', font=(

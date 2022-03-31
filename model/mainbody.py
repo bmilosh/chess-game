@@ -16,7 +16,8 @@ class MainBody(tk.Tk):
         self.board_ranks = BoardRanks(self)
         self.board_ranks.display_ranks()
         self.board_files = BoardFiles(self)
-        self.add_button()
+        self.board_files.display_files()
+        self.add_buttons()
 
     def get_image(self, piece_name):
         try:
@@ -35,13 +36,13 @@ class MainBody(tk.Tk):
             d = i if not self.board.flipped else 7-i
             rank1 = '!label' if not i else f"!label{i+1}"
             rank2 = f'!label{8 - i}'
-            self.board_ranks.children[rank1].configure(
-                text=self.board_ranks.ranks[7-d])
-            self.board_ranks.children[rank2].configure(
-                text=self.board_ranks.ranks[d])
+            self.board_files.children[rank1].configure(
+                text=self.board_files.ranks[7-d])
+            self.board_files.children[rank2].configure(
+                text=self.board_files.ranks[d])
 
-            self.board_files.children[rank1].configure(text=str(d+1))
-            self.board_files.children[rank2].configure(text=str(7-d+1))
+            self.board_ranks.children[rank1].configure(text=str(d+1))
+            self.board_ranks.children[rank2].configure(text=str(7-d+1))
             for j in range(8):
                 self.board.board[i][j], self.board.board[7-i][7 -
                                                               j] = self.board.board[7-i][7-j], self.board.board[i][j]
@@ -79,11 +80,20 @@ class MainBody(tk.Tk):
         new_w_ki_no = '' if w_ki_no == 64 else str(65-w_ki_no)
         self.board.kings_widgets = [
             self.board.children[f"!label{new_b_ki_no}"], self.board.children[f"!label{new_w_ki_no}"]]
+        
+    def new_game_command(self):
+        self.board.reset_variables()
+        self.board_ranks.display_ranks()
+        self.board_files.display_files()
 
-    def add_button(self):
+    def add_buttons(self):
         flip_button = tk.Button(self, text='Flip board', font=(
             'Arial', 12), command=self.flip_command, bg='#c7655d', activebackground='#69605f')
         flip_button.place(relx=0.8, rely=0.2, relheight=0.05, relwidth=0.1)
+
+        new_game_button = tk.Button(self, text='New Game', font=(
+            'Arial', 12), command=self.new_game_command, bg='#c7655d', activebackground='#69605f')
+        new_game_button.place(relx=0.8, rely=0.26, relheight=0.05, relwidth=0.1)
 
     def play(self):
         self.mainloop()

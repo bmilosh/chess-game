@@ -36,36 +36,6 @@ class Board(tk.Frame):
                        highlightcolor="black", highlightthickness=1)
         self.place(relx=0.25, rely=0.0,
                    relwidth=0.5, relheight=0.75)
-        self.board = [[0] * 8 for _ in range(8)]
-        self.previous_move = []
-        self.moving_img = ''
-        self.moving_label: tk.Label = None
-        self.last_move_by = 0
-        self.flipped = False
-
-        # First entry is tuple representing current position of black king
-        # Second entry is tuple representing current position of black king
-        # For example, starting positions will be [(7,4), (0,4)]
-        self.kings_positions = [0, 0]
-
-        self.king_under_check = [False, False]  # [black_king, white_king]
-        self.kings_widgets: list[tk.Label] = [0, 0]  # [black_king, white_king]
-        self.checking_pieces = {'b_ki': list[tk.Widget],
-                                'w_ki': list[tk.Widget]}
-
-        # self.black_queen_image = ImageTk.PhotoImage(Image.open('.\images\\black_queen.png'))
-        # self.black_king_image = ImageTk.PhotoImage(Image.open('.\images\\black_king.png'))
-        # self.black_rook_image = ImageTk.PhotoImage(Image.open('.\images\\black_rook.png'))
-        # self.black_bishop_image = ImageTk.PhotoImage(Image.open('.\images\\black_bishop.png'))
-        # self.black_knight_image = ImageTk.PhotoImage(Image.open('.\images\\black_knight.png'))
-        # self.black_pawn_image = ImageTk.PhotoImage(Image.open('.\images\\black_pawn.png'))
-
-        # self.white_queen_image = ImageTk.PhotoImage(Image.open('.\images\\white_queen.png'))
-        # self.white_king_image = ImageTk.PhotoImage(Image.open('.\images\\white_king.png'))
-        # self.white_rook_image = ImageTk.PhotoImage(Image.open('.\images\\white_rook.png'))
-        # self.white_bishop_image = ImageTk.PhotoImage(Image.open('.\images\\white_bishop.png'))
-        # self.white_knight_image = ImageTk.PhotoImage(Image.open('.\images\\white_knight.png'))
-        # self.white_pawn_image = ImageTk.PhotoImage(Image.open('.\images\\white_pawn.png'))
 
         self.img_dict = {'b_pa': ImageTk.PhotoImage(Image.open('.\images\\black_pawn.png')),
                          'b_ro': ImageTk.PhotoImage(Image.open('.\images\\black_rook.png')),
@@ -81,7 +51,25 @@ class Board(tk.Frame):
                          'w_ki': ImageTk.PhotoImage(Image.open('.\images\\white_king.png'))}
 
         self.tk_focusFollowsMouse()
+        self.reset_variables()
 
+    def reset_variables(self):
+        self.board = [[0] * 8 for _ in range(8)]
+        self.previous_move = []
+        self.moving_img = ''
+        self.moving_label: tk.Label = None
+        self.last_move_by = 0
+        self.flipped = False
+
+        # First entry is tuple representing current position of black king
+        # Second entry is tuple representing current position of black king
+        # For example, starting positions will be [(7,4), (0,4)]
+        self.kings_positions = [0, 0]
+
+        self.king_under_check = [False, False]  # [black_king, white_king]
+        self.kings_widgets: list[tk.Label] = [0, 0]  # [black_king, white_king]
+        self.checking_pieces = {'b': [],
+                                'w': []}
         self._add_labels()
 
     def verify_move(self, board_entry: str, square_from: str, square_to: str):
@@ -90,23 +78,26 @@ class Board(tk.Frame):
         #         board_entry[0] == 'w' and self.last_move_by != 0):
         #     return False
         if piece_name == 'pa':
-            return self.pawn.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, self.flipped)
+            return self.pawn.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, flipped=self.flipped, checking_pieces=self.checking_pieces)
         elif piece_name == 'ro':
-            return self.rook.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv)
+            return self.rook.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
         elif piece_name == 'kn':
-            return self.knight.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv)
+            return self.knight.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
         elif piece_name == 'bi':
-            return self.bishop.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv)
+            return self.bishop.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
         elif piece_name == 'qu':
-            return self.queen.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv)
+            return self.queen.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
         elif piece_name == 'ki':
-            return self.king.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv)
+            return self.king.move(square_from, square_to, self.kings_positions, self.king_under_check, self.board, self.sqv, flipped=self.flipped, checking_pieces=self.checking_pieces)
         else:
             raise ValueError(f"Tried to move unknown piece: {piece_name}.")
 
     def get_rank_and_file_from_label(self, name: int):
-        num = int(name[name.rfind('l')+1:])
-        num = num if not num else num - 1
+        try:
+            num = int(name[name.rfind('l')+1:])
+        except ValueError:
+            num = 1# num if not num else num - 1
+        num -= 1
         rank = num // 8
         file = num - (rank * 8)
         return rank, file
@@ -143,69 +134,95 @@ class Board(tk.Frame):
             w.configure(bg="red")
             print(w)
 
+    def show_unchecked_king(self):
+        if not self.king_under_check[0]:
+            self.restore_label_colour(self.kings_widgets[0])
+            # w = self.kings_widgets[0]
+            # r, f = self.get_rank_and_file_from_label(str(w))
+            # w.configure(bg=self.board_colours[(r+f)%2])
+            # print(w)
+        if not self.king_under_check[1]:
+            self.restore_label_colour(self.kings_widgets[1])
+            # w = self.kings_widgets[1]
+            # r, f = self.get_rank_and_file_from_label(str(w))
+            # w.configure(bg=self.board_colours[(r+f)%2])
+            # print(w)
+
+    def handle_first_click(self, rank, file, w):
+        try:
+            self.moving_img = self.img_dict[self.board[rank][file]]
+        except KeyError:
+            pass
+        else:
+            if ((self.board[rank][file][0] == 'b' and self.last_move_by != 1) or
+                    (self.board[rank][file][0] == 'w' and self.last_move_by != 0)):
+                pass
+            else:
+                w.configure(bg=self.clicked_or_released_colour)
+                # self.clicked = True
+                self.previous_move.append(w)
+                self.moving_label = w
+
+    def handle_second_click(self, rank, file, w):
+        r2, f2 = self.get_rank_and_file_from_label(str(self.moving_label))
+        square_from = self.files[f2] + str(r2+1)
+        square_to = f"{self.files[file]}{rank+1}"
+        entry = self.board[r2][f2]
+        move_valid = self.verify_move(entry, square_from, square_to)
+        # if entry[0] == 'b':
+        #     move_valid = self.verify_move(entry, self.black_king_position, square_from, square_to)
+        # else:
+        #     move_valid = self.verify_move(entry, self.white_king_position, square_from, square_to)
+        if not move_valid:
+            print(
+                f"Invalid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
+            self.previous_move.pop()
+            self.restore_label_colour(self.moving_label)
+        else:
+            print(
+                f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
+            w.configure(image=self.moving_img,
+                        bg=self.clicked_or_released_colour)
+            self.board[rank][file] = entry
+            self.moving_label.configure(image='')
+            self.board[r2][f2] = 0
+            # self.clicked = True
+            self.update_previous_move_list(w)
+            self.update_king_position(entry, (rank, file), w)
+            if sum(self.king_under_check):
+                self.show_checked_king()
+            self.show_unchecked_king()
+            self.last_move_by ^= 1
+        self.moving_label: tk.Label = None
+        self.moving_img = ''
+
     def single_click(self, event: tk.Event):
         w = event.widget
         n = str(w)
         rank, file = self.get_rank_and_file_from_label(n)
-        # First click
+        # if w in self.kings_widgets:
+        #     print("passing ****************")
+        #     pass
         if self.moving_label is None:
-
-            try:
-                self.moving_img = self.img_dict[self.board[rank][file]]
-            except KeyError:
-                pass
-            else:
-                if ((self.board[rank][file][0] == 'b' and self.last_move_by != 1) or
-                        (self.board[rank][file][0] == 'w' and self.last_move_by != 0)):
-                    pass
-                else:
-                    w.configure(bg=self.clicked_or_released_colour)
-                    # self.clicked = True
-                    self.previous_move.append(w)
-                    self.moving_label = w
-        # Second click
+            self.handle_first_click(rank, file, w)
         else:
-            r2, f2 = self.get_rank_and_file_from_label(str(self.moving_label))
-            square_from = self.files[f2] + str(r2+1)
-            square_to = f"{self.files[file]}{rank+1}"
-            entry = self.board[r2][f2]
-            move_valid = self.verify_move(entry, square_from, square_to)
-            # if entry[0] == 'b':
-            #     move_valid = self.verify_move(entry, self.black_king_position, square_from, square_to)
-            # else:
-            #     move_valid = self.verify_move(entry, self.white_king_position, square_from, square_to)
-            if not move_valid:
-                print(
-                    f"Invalid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
-                self.previous_move.pop()
-                self.restore_label_colour(self.moving_label)
-            else:
-                print(
-                    f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
-                w.configure(image=self.moving_img,
-                            bg=self.clicked_or_released_colour)
-                self.board[rank][file] = entry
-                self.moving_label.configure(image='')
-                self.board[r2][f2] = 0
-                # self.clicked = True
-                self.update_previous_move_list(w)
-                self.update_king_position(entry, (rank, file), w)
-                if sum(self.king_under_check):
-                    self.show_checked_king()
-                self.last_move_by ^= 1
-            self.moving_label: tk.Label = None
-            self.moving_img = ''
+            self.handle_second_click(rank, file, w)
 
     def restore_label_colour(self, w: tk.Label):
-        n = str(w)
-        r, f = self.get_rank_and_file_from_label(n)
-        w.configure(bg=self.board_colours[(r+f) % 2])
+        if w in self.kings_widgets and self.king_under_check[self.kings_widgets.index(w)]:
+            self.show_checked_king()
+        elif w in self.kings_widgets and w in self.previous_move:
+            w.configure(bg=self.clicked_or_released_colour)
+        else:
+            n = str(w)
+            r, f = self.get_rank_and_file_from_label(n)
+            w.configure(bg=self.board_colours[(r+f) % 2])
 
     def enter_focus(self, event: tk.Event):
         w = event.widget
         if w.master == self and w not in self.previous_move:
             if w not in self.kings_widgets or not self.king_under_check[self.kings_widgets.index(w)]:
-                # print(f"not a king {str(w)}")
+                # print(f"not a king {str(w)}, {self.kings_widgets=}")
                 w.configure(bg='#a7aac4')
             # elif not self.king_under_check[self.kings_widgets.index(w)]:
             #     print(f"a king but not under check {self.king_under_check=}")

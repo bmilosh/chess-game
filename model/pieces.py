@@ -618,6 +618,12 @@ class King:
         return True
 
     def __check(self, str_int, stf_int, board, threat, k=1):
+        """
+        Utility function for the bishop and rook safety checks.
+        k is set to 1 for the bishop. However, in order to be 
+        able to check same file and rank for the rook, we pass
+        it in as 0.
+        """
         safe1 = safe2 = safe3 = safe4 = None
         def check(safe, i, j):
             if 0 <= str_int + i <= 7 and 0 <= stf_int + j <= 7 and \
@@ -639,70 +645,13 @@ class King:
 
 
     def _king_safe_from_bishop(self, stf_int, str_int, king_colour, board):
-        # safe1 = safe2 = safe3 = safe4 = None
         threat = ['b_bi', 'b_qu'] if king_colour == 'w' else ['w_bi', 'w_qu']
         return self.__check(str_int, stf_int, board, threat)
 
-        # def check(safe, i, j):
-        #     if 0 <= str_int + i <= 7 and 0 <= stf_int + j <= 7 and \
-        #             isinstance(board[str_int + i][stf_int + j], str):
-        #         if board[str_int + i][stf_int + j] in threat:
-        #             safe = False if safe is None else safe
-        #         else:
-        #             safe = True if safe is None else safe
-        #     return safe
-
-        # for i in range(1, 8):
-        #     safe1 = check(safe1, -i, -i)
-        #     safe2 = check(safe2, -i, i)
-        #     safe3 = check(safe3, i, -i)
-        #     safe4 = check(safe4, i, i)
-        #     if safe1 == safe2 == safe3 == safe4 == True:
-        #         return True
-        # return safe1 != False and safe2 != False and safe3 != False and safe4 != False
 
     def _king_safe_from_rook(self, stf_int, str_int, king_colour, board):
-        # safe1 = safe2 = safe3 = safe4 = None
         threat = ['b_ro', 'b_qu'] if king_colour == 'w' else ['w_ro', 'w_qu']
         return self.__check(str_int, stf_int, board, threat, k=0)
-
-        # def check(safe, i, j):
-        #     if 0 <= str_int + i <= 7 and 0 <= stf_int + j <= 7 and \
-        #             isinstance(board[str_int + i][stf_int + j], str):
-        #         if board[str_int + i][stf_int + j] in threat:
-        #             safe = False if safe is None else safe
-        #         else:
-        #             safe = True if safe is None else safe
-        #     return safe
-
-        # for i in range(1, 8):
-        #     if 0 <= str_int - i:
-        #         if isinstance(board[str_int - i][stf_int], str):
-        #             if board[str_int - i][stf_int][0] != king_colour and board[str_int - i][stf_int][2:] in ['ro', 'qu']:
-        #                 return False
-        #             break
-
-        # for i in range(1, 8):
-        #     if str_int + i <= 7:
-        #         if isinstance(board[str_int + i][stf_int], str):
-        #             if board[str_int + i][stf_int][0] != king_colour and board[str_int + i][stf_int][2:] in ['ro', 'qu']:
-        #                 return False
-        #             break
-
-        # for i in range(1, 8):
-        #     if 0 <= stf_int - i:
-        #         if isinstance(board[str_int][stf_int - i], str):
-        #             if board[str_int][stf_int - i][0] != king_colour and board[str_int][stf_int - i][2:] in ['ro', 'qu']:
-        #                 return False
-        #             break
-
-        # for i in range(1, 8):
-        #     if stf_int + i <= 7:
-        #         if isinstance(board[str_int][stf_int + i], str):
-        #             if board[str_int][stf_int + i][0] != king_colour and board[str_int][stf_int + i][2:] in ['ro', 'qu']:
-        #                 return False
-        #             break
-        # return True
 
     def _king_safe_from_queen(self, stf_int, str_int, king_colour, board):
         return (self._king_safe_from_bishop(stf_int, str_int, king_colour, board) and

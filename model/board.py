@@ -68,6 +68,12 @@ class Board(tk.Frame):
         self.moving_label: tk.Label = None
         self.last_move_by = 0
         self.flipped = False
+        self.castling_options = {'w_ki': True,
+                                'b_ki': True,
+                                (0, 0): True,
+                                (0, 7): True,
+                                (7, 0): True,
+                                (7, 7): True}
 
         # First entry is tuple representing current position of black king
         # Second entry is tuple representing current position of black king
@@ -222,11 +228,12 @@ class Board(tk.Frame):
         else:
             print(
                 f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
-            w.configure(image=self.moving_img,
-                        bg=self.clicked_or_released_colour[(rank+file) % 2])
-            self.board[rank][file] = entry
-            self.moving_label.configure(image='')
-            self.board[r2][f2] = 0
+            self.update_board(w, rank, file, r2, f2, entry)
+            # w.configure(image=self.moving_img,
+            #             bg=self.clicked_or_released_colour[(rank+file) % 2])
+            # self.board[rank][file] = entry
+            # self.moving_label.configure(image='')
+            # self.board[r2][f2] = 0
             # self.clicked = True
             self.update_previous_move_list(w)
             self.update_king_position(entry, (rank, file), w)
@@ -236,6 +243,18 @@ class Board(tk.Frame):
             self.last_move_by ^= 1
         self.moving_label: tk.Label = None
         self.moving_img = ''
+
+    def update_board(self, w: tk.Widget, rank, file, rank_from, file_from, last_moved_piece):
+        if rank in [0, 7] and last_moved_piece[2:] == 'pa':
+            last_moved_piece = last_moved_piece[0] + '_qu'
+            w.configure(image=self.img_dict[last_moved_piece],
+                        bg=self.clicked_or_released_colour[(rank+file) % 2])
+        else:
+            w.configure(image=self.moving_img,
+                        bg=self.clicked_or_released_colour[(rank+file) % 2])
+        self.board[rank][file] = last_moved_piece
+        self.moving_label.configure(image='')
+        self.board[rank_from][file_from] = 0
 
     def single_click(self, event: tk.Event):
         w = event.widget

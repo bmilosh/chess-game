@@ -3,7 +3,6 @@ import tkinter as tk
 
 from PIL import Image, ImageTk
 
-from model.board_ranks_and_files import BoardFiles, BoardRanks
 from model.pieces import *
 from model.square_validator import SquareValidator
 
@@ -23,13 +22,13 @@ class Board(tk.Frame):
 
     files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']  # list('abcdefgh')
 
-    # Pieces
-    pawn = Pawn()
-    rook = Rook()
-    knight = Knight()
-    bishop = Bishop()
-    queen = Queen()
-    king = King()
+    # # Pieces
+    # pawn = Pawn()
+    # rook = Rook()
+    # knight = Knight()
+    # bishop = Bishop()
+    # queen = Queen()
+    # king = King()
 
     # Square validator
     sqv = SquareValidator()
@@ -44,18 +43,18 @@ class Board(tk.Frame):
         self.temp_children = {}
         self.temp_board = []
 
-        self.img_dict = {'b_pa': ImageTk.PhotoImage(Image.open('.\images\\black_pawn.png')),
-                         'b_ro': ImageTk.PhotoImage(Image.open('.\images\\black_rook.png')),
-                         'b_kn': ImageTk.PhotoImage(Image.open('.\images\\black_knight.png')),
-                         'b_bi': ImageTk.PhotoImage(Image.open('.\images\\black_bishop.png')),
-                         'b_qu': ImageTk.PhotoImage(Image.open('.\images\\black_queen.png')),
-                         'b_ki': ImageTk.PhotoImage(Image.open('.\images\\black_king.png')),
-                         'w_pa': ImageTk.PhotoImage(Image.open('.\images\\white_pawn.png')),
-                         'w_ro': ImageTk.PhotoImage(Image.open('.\images\\white_rook.png')),
-                         'w_kn': ImageTk.PhotoImage(Image.open('.\images\\white_knight.png')),
-                         'w_bi': ImageTk.PhotoImage(Image.open('.\images\\white_bishop.png')),
-                         'w_qu': ImageTk.PhotoImage(Image.open('.\images\\white_queen.png')),
-                         'w_ki': ImageTk.PhotoImage(Image.open('.\images\\white_king.png')),
+        self.img_dict = {'black pawn': ImageTk.PhotoImage(Image.open('.\images\\black_pawn.png')),
+                         'black rook': ImageTk.PhotoImage(Image.open('.\images\\black_rook.png')),
+                         'black knight': ImageTk.PhotoImage(Image.open('.\images\\black_knight.png')),
+                         'black bishop': ImageTk.PhotoImage(Image.open('.\images\\black_bishop.png')),
+                         'black queen': ImageTk.PhotoImage(Image.open('.\images\\black_queen.png')),
+                         'black king': ImageTk.PhotoImage(Image.open('.\images\\black_king.png')),
+                         'white pawn': ImageTk.PhotoImage(Image.open('.\images\\white_pawn.png')),
+                         'white rook': ImageTk.PhotoImage(Image.open('.\images\\white_rook.png')),
+                         'white knight': ImageTk.PhotoImage(Image.open('.\images\\white_knight.png')),
+                         'white bishop': ImageTk.PhotoImage(Image.open('.\images\\white_bishop.png')),
+                         'white queen': ImageTk.PhotoImage(Image.open('.\images\\white_queen.png')),
+                         'white king': ImageTk.PhotoImage(Image.open('.\images\\white_king.png')),
                          0: ''}
 
         self.tk_focusFollowsMouse()
@@ -68,8 +67,8 @@ class Board(tk.Frame):
         self.moving_label: tk.Label = None
         self.last_move_by = 0
         self.flipped = False
-        self.castling_options = {'w_ki': True,
-                                'b_ki': True,
+        self.castling_options = {'white king': True,
+                                'black king': True,
                                 (0, 0): True,
                                 (0, 7): True,
                                 (7, 0): True,
@@ -82,60 +81,39 @@ class Board(tk.Frame):
 
         self.king_under_check = [False, False]  # [black_king, white_king]
         self.kings_widgets: list[tk.Label] = [0, 0]  # [black_king, white_king]
-        self.checking_pieces = {'b': [],
-                                'w': []}
+        self.checking_pieces = {'black': [],
+                                'white': []}
         self.reset_labels()
 
     def reset_labels(self):
         if self.temp_board:
             self.board = [list(itm) for itm in self.temp_board]
-            self.children = self.temp_children
+            self.children = {k: v for k, v in self.temp_children.items()}
             self.kings_positions = [(7, 4), (0, 4)]
             self.kings_widgets: list[tk.Label] = [
-                self.children['!label5'], self.children['!label61']]
+                self.children['!label61'], self.children['!label5']]
             self.reconfigure_labels()
+            # Reset castling priviledges 
+            for r, f in [(0,0), (0,7), (7,0), (7,7), (0,4), (7,4)]:
+                self.board[r][f].can_castle = True
         else:
             self._add_labels()
 
     def reconfigure_labels(self):
         for r in range(8):
             for f in range(8):
-                if r == f == 0:
-                    end = ''
-                else:
-                    end = str((r * 8) + f + 1)
-                name = '!label' + end
-                img = self.img_dict[self.board[r][f]]
+                name = self.get_label_from_rank_and_file(r, f)  
+                try:
+                    img_key = self.board[r][f].colour + ' ' + self.board[r][f].name
+                except AttributeError:
+                    img_key = 0
                 col = self.board_colours[(r+f) % 2]
-                self.children[name].configure(bg=col, image=img)
+                self.children[name].configure(bg=col, image=self.img_dict[img_key])
 
     def verify_move(self, board_entry: str, square_from: str, square_to: str):
-        piece_name = board_entry[2:]
-        # if (board_entry[0] == 'b' and self.last_move_by != 1 or
-        #         board_entry[0] == 'w' and self.last_move_by != 0):
-        #     return False
-        if piece_name == 'pa':
-            return self.pawn.move(square_from, square_to, self.kings_positions,
+        return board_entry.move(square_from, square_to, self.kings_positions,
                                   self.king_under_check, self.board, self.sqv,
                                   flipped=self.flipped, checking_pieces=self.checking_pieces)
-        elif piece_name == 'ro':
-            return self.rook.move(square_from, square_to, self.kings_positions,
-                                  self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
-        elif piece_name == 'kn':
-            return self.knight.move(square_from, square_to, self.kings_positions,
-                                    self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
-        elif piece_name == 'bi':
-            return self.bishop.move(square_from, square_to, self.kings_positions,
-                                    self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
-        elif piece_name == 'qu':
-            return self.queen.move(square_from, square_to, self.kings_positions,
-                                   self.king_under_check, self.board, self.sqv, checking_pieces=self.checking_pieces)
-        elif piece_name == 'ki':
-            return self.king.move(square_from, square_to, self.kings_positions,
-                                  self.king_under_check, self.board, self.sqv, 
-                                  flipped=self.flipped, checking_pieces=self.checking_pieces)
-        else:
-            raise ValueError(f"Tried to move unknown piece: {piece_name}.")
 
     def get_rank_and_file_from_label(self, name: int):
         try:
@@ -147,11 +125,10 @@ class Board(tk.Frame):
         file = (num - (rank * 8)) % 8
         return rank, file
 
-    # def get_number_of_label(self, name: str):
-    #     try:
-    #         return int(name[name.rfind('l')+1:])
-    #     except ValueError:
-    #         return 1
+    def get_label_from_rank_and_file(self, rank, file) -> str:
+        if not rank and not file:
+            return "!label"
+        return f"!label{(rank*8) + file + 1}"
 
     def update_previous_move_list(self, w: tk.Widget):
         if len(self.previous_move) == 1:
@@ -164,8 +141,8 @@ class Board(tk.Frame):
         self.previous_move.append(w)
 
     def update_king_position(self, last_moved_piece: str, new_position: tuple, widget):
-        if last_moved_piece.endswith('ki'):
-            if last_moved_piece.startswith('b'):
+        if last_moved_piece.name == 'king':
+            if last_moved_piece.colour == 'black':
                 self.kings_positions[0] = new_position
                 self.kings_widgets[0] = widget
             else:
@@ -197,12 +174,17 @@ class Board(tk.Frame):
             # print(w)
 
     def handle_first_click(self, rank, file, w):
-        self.moving_img = self.img_dict[self.board[rank][file]]
+        try:
+            p = self.board[rank][file]
+            self.moving_img = self.img_dict[f"{p.colour} {p.name}"]
+        except AttributeError:
+            pass
         if not self.moving_img:
             pass
         else:
-            if ((self.board[rank][file][0] == 'b' and self.last_move_by != 1) or
-                    (self.board[rank][file][0] == 'w' and self.last_move_by != 0)):
+            if not self.board[rank][file] or \
+                    ((self.board[rank][file].colour == 'black' and self.last_move_by != 1) or
+                    (self.board[rank][file].colour == 'white' and self.last_move_by != 0)):
                 pass
             else:
                 w.configure(bg=self.clicked_colour)
@@ -216,38 +198,30 @@ class Board(tk.Frame):
         square_to = f"{self.files[file]}{rank+1}"
         entry = self.board[r2][f2]
         move_valid = self.verify_move(entry, square_from, square_to)
-        # if entry[0] == 'b':
-        #     move_valid = self.verify_move(entry, self.black_king_position, square_from, square_to)
-        # else:
-        #     move_valid = self.verify_move(entry, self.white_king_position, square_from, square_to)
         if not move_valid:
-            print(
-                f"Invalid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
+            # print(
+            #     f"Invalid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
             self.previous_move.pop()
             self.restore_label_colour(self.moving_label)
         else:
-            print(
-                f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
+            # print(
+            #     f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
             self.update_board(w, rank, file, r2, f2, entry)
-            # w.configure(image=self.moving_img,
-            #             bg=self.clicked_or_released_colour[(rank+file) % 2])
-            # self.board[rank][file] = entry
-            # self.moving_label.configure(image='')
-            # self.board[r2][f2] = 0
-            # self.clicked = True
+            self.update_castling_options(r2, f2, rank, file, entry)
             self.update_previous_move_list(w)
             self.update_king_position(entry, (rank, file), w)
-            if sum(self.king_under_check):
-                self.show_checked_king()
+            self.show_checked_king()
             self.show_unchecked_king()
             self.last_move_by ^= 1
         self.moving_label: tk.Label = None
         self.moving_img = ''
 
     def update_board(self, w: tk.Widget, rank, file, rank_from, file_from, last_moved_piece):
-        if rank in [0, 7] and last_moved_piece[2:] == 'pa':
-            last_moved_piece = last_moved_piece[0] + '_qu'
-            w.configure(image=self.img_dict[last_moved_piece],
+        if rank in [0, 7] and last_moved_piece.name == 'pawn':
+            # Handles promotion (to queen for now)
+            last_moved_piece = Queen(colour=last_moved_piece.colour) #last_moved_piece.colour + '_queen'
+            img_key = f"{last_moved_piece.colour} queen"
+            w.configure(image=self.img_dict[img_key],
                         bg=self.clicked_or_released_colour[(rank+file) % 2])
         else:
             w.configure(image=self.moving_img,
@@ -255,6 +229,32 @@ class Board(tk.Frame):
         self.board[rank][file] = last_moved_piece
         self.moving_label.configure(image='')
         self.board[rank_from][file_from] = 0
+
+    def display_castle(self, sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece):
+        new_rook_file, file = (sq_to_fil + 1, 0) if f_diff > 0 else (sq_to_fil - 1, 7)
+        old_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, file)
+        new_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, new_rook_file)
+        rook = last_moved_piece.colour + ' rook'
+        self.children[old_rook_lab].configure(image='')
+        self.children[new_rook_lab].configure(image=self.img_dict[rook])
+        self.board[sq_frm_rnk][new_rook_file], self.board[sq_frm_rnk][file] = self.board[sq_frm_rnk][file], 0
+        self.board[sq_frm_rnk][new_rook_file].can_castle = False
+        last_moved_piece.can_castle = False
+
+    def update_castling_options(self, sq_frm_rnk, sq_frm_fil, sq_to_rnk, sq_to_fil, last_moved_piece):
+        """
+        Called only if the move is valid"""
+        if last_moved_piece.name == 'king':
+            # Works as long as the castling rights are correctly updated
+            r_diff = sq_frm_rnk-sq_to_rnk
+            f_diff = sq_frm_fil-sq_to_fil
+            if abs(r_diff) == 0 and abs(f_diff) == 2:
+                # we're castling, and the move has already been validated to be correct,
+                # so we need to display this move on the board
+                self.display_castle(sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece)
+            else:
+                last_moved_piece.can_castle = False
+
 
     def single_click(self, event: tk.Event):
         w = event.widget
@@ -270,7 +270,7 @@ class Board(tk.Frame):
         r, f = self.get_rank_and_file_from_label(n)
         if w in self.kings_widgets and self.king_under_check[self.kings_widgets.index(w)]:
             self.show_checked_king()
-        elif w in self.previous_move and previous:  # w in self.kings_widgets and w in self.previous_move
+        elif w in self.previous_move and previous:  
             w.configure(bg=self.clicked_or_released_colour[(r+f) % 2])
         else:
             w.configure(bg=self.board_colours[(r+f) % 2])
@@ -300,48 +300,48 @@ class Board(tk.Frame):
 
                 # pawns
                 if rank == 1:
-                    cell.configure(image=self.img_dict['b_pa'])
-                    self.board[7-rank] = ['b_pa'] * 8
+                    cell.configure(image=self.img_dict['black pawn'])
+                    self.board[7-rank][file] = Pawn(colour="black")
                 elif rank == 6:
-                    cell.configure(image=self.img_dict['w_pa'])
-                    self.board[7-rank] = ['w_pa'] * 8
+                    cell.configure(image=self.img_dict['white pawn'])
+                    self.board[7-rank][file] = Pawn(colour="white")
                 # rooks
                 elif (rank, file) in [(0, 0), (0, 7)]:
-                    cell.configure(image=self.img_dict['b_ro'])
-                    self.board[7-rank][file] = 'b_ro'
+                    cell.configure(image=self.img_dict['black rook'])
+                    self.board[7-rank][file] = Rook(colour="black")
                 elif (rank, file) in [(7, 0), (7, 7)]:
-                    cell.configure(image=self.img_dict['w_ro'])
-                    self.board[7-rank][file] = 'w_ro'
+                    cell.configure(image=self.img_dict['white rook'])
+                    self.board[7-rank][file] = Rook(colour="white")
                 # knights
                 elif (rank, file) in [(0, 1), (0, 6)]:
-                    cell.configure(image=self.img_dict['b_kn'])
-                    self.board[7-rank][file] = 'b_kn'
+                    cell.configure(image=self.img_dict['black knight'])
+                    self.board[7-rank][file] = Knight(colour="black")
                 elif (rank, file) in [(7, 1), (7, 6)]:
-                    cell.configure(image=self.img_dict['w_kn'])
-                    self.board[7-rank][file] = 'w_kn'
+                    cell.configure(image=self.img_dict['white knight'])
+                    self.board[7-rank][file] = Knight(colour="white")
                 # bishops
                 elif (rank, file) in [(0, 2), (0, 5)]:
-                    cell.configure(image=self.img_dict['b_bi'])
-                    self.board[7-rank][7-file] = 'b_bi'
+                    cell.configure(image=self.img_dict['black bishop'])
+                    self.board[7-rank][7-file] = Bishop(colour="black")
                 elif (rank, file) in [(7, 2), (7, 5)]:
-                    cell.configure(image=self.img_dict['w_bi'])
-                    self.board[7-rank][7-file] = 'w_bi'
+                    cell.configure(image=self.img_dict['white bishop'])
+                    self.board[7-rank][7-file] = Bishop(colour="white")
                 # queens
                 elif (rank, file) == (0, 3):
-                    cell.configure(image=self.img_dict['b_qu'])
-                    self.board[7-rank][file] = 'b_qu'
+                    cell.configure(image=self.img_dict['black queen'])
+                    self.board[7-rank][file] = Queen(colour="black")
                 elif (rank, file) == (7, 3):
-                    cell.configure(image=self.img_dict['w_qu'])
-                    self.board[7-rank][file] = 'w_qu'
+                    cell.configure(image=self.img_dict['white queen'])
+                    self.board[7-rank][file] = Queen(colour="white")
                 # kings
                 elif (rank, file) == (0, 4):
-                    cell.configure(image=self.img_dict['b_ki'])
-                    self.board[7-rank][file] = 'b_ki'
+                    cell.configure(image=self.img_dict['black king'])
+                    self.board[7-rank][file] = King(colour="black")
                     self.kings_positions[0] = (7, 4)
                     self.kings_widgets[0] = cell
                 elif (rank, file) == (7, 4):
-                    cell.configure(image=self.img_dict['w_ki'])
-                    self.board[7-rank][file] = 'w_ki'
+                    cell.configure(image=self.img_dict['white king'])
+                    self.board[7-rank][file] = King(colour="white")
                     self.kings_positions[1] = (0, 4)
                     self.kings_widgets[1] = cell
 

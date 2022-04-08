@@ -51,11 +51,15 @@ class MainBody(tk.Tk):
                 else:
                     first = '!label'
                 second = f'!label{((7 - i) * 8) + 7 - j + 1}'
+                first_piece = self.board.board[i][j]
+                k1 = first_piece if not first_piece else f"{first_piece.colour} {first_piece.name}"
+                second_piece = self.board.board[7-i][7-j]
+                k2 = second_piece if not second_piece else f"{second_piece.colour} {second_piece.name}"
 
                 self.board.children[first].configure(
-                    image=self.get_image(self.board.board[i][j]))
+                    image=self.get_image(k1)) # self.board.board[i][j]
                 self.board.children[second].configure(
-                    image=self.get_image(self.board.board[7-i][7-j]))
+                    image=self.get_image(k2))  # self.board.board[7-i][7-j]
         self.board.flipped ^= 1
         self.update_king_widget_and_positions()
         self.update_colours_for_previous_moves()

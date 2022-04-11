@@ -62,7 +62,8 @@ class DiscoveredChecks:
                         return False
                     piece = board[r][f]
                     if piece != 0:
-                        if piece in (col + '_bi', col + '_qu'):
+                        if piece.colour == col and piece.name in ['bishop', 'queen']:
+                        # if piece in (col + '_bi', col + '_qu'):
                             return piece, (r, f)
                         return False
                 else:
@@ -94,7 +95,8 @@ class DiscoveredChecks:
                         return False
                     piece = board[r][f]
                     if piece != 0:
-                        if piece in (col + '_ro', col + '_qu'):
+                        if piece.colour == col and piece.name in ['rook', 'queen']:
+                        # if piece in (col + '_ro', col + '_qu'):
                             return piece, (r, f)
                         return False
                 else:

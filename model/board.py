@@ -42,6 +42,8 @@ class Board(tk.Frame):
                    relwidth=0.5, relheight=0.75)
         self.temp_children = {}
         self.temp_board = []
+        self.white_active_pieces = []
+        self.black_active_pieces = []
 
         self.img_dict = {'black pawn': ImageTk.PhotoImage(Image.open('.\images\\black_pawn.png')),
                          'black rook': ImageTk.PhotoImage(Image.open('.\images\\black_rook.png')),
@@ -88,6 +90,8 @@ class Board(tk.Frame):
     def reset_labels(self):
         if self.temp_board:
             self.board = [list(itm) for itm in self.temp_board]
+            self.white_active_pieces = self.temp_wap
+            self.black_active_pieces = self.temp_bap
             self.children = {k: v for k, v in self.temp_children.items()}
             self.kings_positions = [(7, 4), (0, 4)]
             self.kings_widgets: list[tk.Label] = [
@@ -206,6 +210,8 @@ class Board(tk.Frame):
         else:
             # print(
             #     f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
+            self.update_active_pieces(rank, file)
+            print(len(self.white_active_pieces), len(self.black_active_pieces))
             self.update_board(w, rank, file, r2, f2, entry)
             self.update_castling_options(r2, f2, rank, file, entry)
             self.update_previous_move_list(w)
@@ -216,10 +222,36 @@ class Board(tk.Frame):
         self.moving_label: tk.Label = None
         self.moving_img = ''
 
+    def update_active_pieces(self, rank, file, promoted_piece=None, rank_from=None, file_from=None):
+        """
+        Called before updating the board.
+        Only called when the move is legal."""
+        p = self.board[rank][file]
+        if p and promoted_piece is None:
+            if p.colour == "white":
+                self.white_active_pieces.remove(p)
+            else:
+                self.black_active_pieces.remove(p)
+        if promoted_piece is not None:
+            print(f"we're promoting?? {promoted_piece=}")
+            # promoted_piece.rank, promoted_piece.file = rank, file
+            if promoted_piece.colour == "white":
+                # print(f"before promoting: {self.white_active_pieces=}")
+                self.white_active_pieces.append(promoted_piece)
+                self.white_active_pieces.remove(self.board[rank_from][file_from])
+                # print(f"after promoting: {self.white_active_pieces=}")
+            else:
+                # print(f"before promoting: {self.black_active_pieces=}")
+                self.black_active_pieces.append(promoted_piece)
+                self.black_active_pieces.remove(self.board[rank_from][file_from])
+                # print(f"after promoting: {self.black_active_pieces=}")
+    
     def update_board(self, w: tk.Widget, rank, file, rank_from, file_from, last_moved_piece):
         if rank in [0, 7] and last_moved_piece.name == 'pawn':
             # Handles promotion (to queen for now)
             last_moved_piece = Queen(colour=last_moved_piece.colour) #last_moved_piece.colour + '_queen'
+            last_moved_piece.rank, last_moved_piece.file = rank, file
+            self.update_active_pieces(rank, file, promoted_piece=last_moved_piece, rank_from=rank_from, file_from=file_from)
             img_key = f"{last_moved_piece.colour} queen"
             w.configure(image=self.img_dict[img_key],
                         bg=self.clicked_or_released_colour[(rank+file) % 2])
@@ -239,6 +271,7 @@ class Board(tk.Frame):
         self.children[new_rook_lab].configure(image=self.img_dict[rook])
         self.board[sq_frm_rnk][new_rook_file], self.board[sq_frm_rnk][file] = self.board[sq_frm_rnk][file], 0
         self.board[sq_frm_rnk][new_rook_file].can_castle = False
+        self.board[sq_frm_rnk][new_rook_file].file = new_rook_file
         last_moved_piece.can_castle = False
 
     def update_castling_options(self, sq_frm_rnk, sq_frm_fil, sq_to_rnk, sq_to_fil, last_moved_piece):
@@ -300,55 +333,79 @@ class Board(tk.Frame):
 
                 # pawns
                 if rank == 1:
-                    cell.configure(image=self.img_dict['black pawn'])
                     self.board[7-rank][file] = Pawn(colour="black")
                 elif rank == 6:
-                    cell.configure(image=self.img_dict['white pawn'])
                     self.board[7-rank][file] = Pawn(colour="white")
                 # rooks
                 elif (rank, file) in [(0, 0), (0, 7)]:
-                    cell.configure(image=self.img_dict['black rook'])
                     self.board[7-rank][file] = Rook(colour="black")
                 elif (rank, file) in [(7, 0), (7, 7)]:
-                    cell.configure(image=self.img_dict['white rook'])
                     self.board[7-rank][file] = Rook(colour="white")
                 # knights
                 elif (rank, file) in [(0, 1), (0, 6)]:
-                    cell.configure(image=self.img_dict['black knight'])
                     self.board[7-rank][file] = Knight(colour="black")
                 elif (rank, file) in [(7, 1), (7, 6)]:
-                    cell.configure(image=self.img_dict['white knight'])
                     self.board[7-rank][file] = Knight(colour="white")
                 # bishops
                 elif (rank, file) in [(0, 2), (0, 5)]:
-                    cell.configure(image=self.img_dict['black bishop'])
                     self.board[7-rank][7-file] = Bishop(colour="black")
+                    img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
+                    cell.configure(image=self.img_dict[img_name])
+                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                    self.black_active_pieces.append(self.board[7-rank][7-file])
                 elif (rank, file) in [(7, 2), (7, 5)]:
-                    cell.configure(image=self.img_dict['white bishop'])
                     self.board[7-rank][7-file] = Bishop(colour="white")
+                    img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
+                    cell.configure(image=self.img_dict[img_name])
+                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                    self.white_active_pieces.append(self.board[7-rank][7-file])
                 # queens
                 elif (rank, file) == (0, 3):
-                    cell.configure(image=self.img_dict['black queen'])
                     self.board[7-rank][file] = Queen(colour="black")
                 elif (rank, file) == (7, 3):
-                    cell.configure(image=self.img_dict['white queen'])
                     self.board[7-rank][file] = Queen(colour="white")
                 # kings
                 elif (rank, file) == (0, 4):
-                    cell.configure(image=self.img_dict['black king'])
                     self.board[7-rank][file] = King(colour="black")
                     self.kings_positions[0] = (7, 4)
                     self.kings_widgets[0] = cell
                 elif (rank, file) == (7, 4):
-                    cell.configure(image=self.img_dict['white king'])
                     self.board[7-rank][file] = King(colour="white")
                     self.kings_positions[1] = (0, 4)
                     self.kings_widgets[1] = cell
+
+                if self.board[7-rank][file]:
+                    img_name = self.board[7-rank][file].colour + ' ' + self.board[7-rank][file].name
+                    cell.configure(image=self.img_dict[img_name])
+                    self.board[7-rank][file].rank, self.board[7-rank][file].file = 7-rank, file
+                    if self.board[7-rank][file].colour == "white" and \
+                            self.board[7-rank][file] not in self.white_active_pieces:
+                        self.white_active_pieces.append(self.board[7-rank][file])
+                    elif self.board[7-rank][file].colour == "black" and \
+                            self.board[7-rank][file] not in self.black_active_pieces:
+                        self.black_active_pieces.append(self.board[7-rank][file])
+                # elif self.board[7-rank][7-file]:
+                #     img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
+                #     print(f"{img_name=}, {7-rank=}, {file=}")
+                #     cell.configure(image=self.img_dict[img_name])
+                #     self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                #     if self.board[7-rank][7-file].colour == "white":
+                #         self.white_active_pieces.append(self.board[7-rank][7-file])
+                #     else:
+                #         self.black_active_pieces.append(self.board[7-rank][7-file])
 
                 cell.place(relx=file * SQUARE_RATIO, rely=rank * SQUARE_RATIO,
                            relheight=SQUARE_RATIO, relwidth=SQUARE_RATIO)
                 if file < 7:
                     prev_colour = prev_colour ^ 1
 
+
         self.temp_children = {k: v for k, v in self.children.items()}
         self.temp_board = [list(itm) for itm in self.board]
+        self.temp_wap = list(self.white_active_pieces)
+        self.temp_bap = list(self.black_active_pieces)
+        # print(*self.board, sep='\n')
+        # print(len(self.black_active_pieces))
+        # print(self.black_active_pieces)
+        # print(len(self.white_active_pieces))
+        # print(self.white_active_pieces)

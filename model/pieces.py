@@ -18,14 +18,18 @@ class Pawn(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'pawn'
 
     def _check(self, file_diff: int, rank_diff: int, square_to_occupant: int,
                square_from: str, square_to: str, col: str, board) -> bool:
         if file_diff == 1:
             # Should make a diagonal movement
-            if rank_diff != 1 or square_to_occupant == -1:  # check this later!!!
+            if rank_diff != 1 or square_to_occupant != 1:  # check this later!!!
+                # print(f"can't make diagonal move: {rank_diff=}, {square_to_occupant=}")
                 return False
+            # print(f"******CAN make diagonal move: {rank_diff=}, {square_to_occupant=}")
             return True
         # Remaining on the same file
         elif file_diff == 0:
@@ -103,6 +107,9 @@ class Pawn(Piece):
                     isinstance(board[str_int][stf_int], Rook) and \
                     board[str_int][stf_int].colour == opp_col:
                 board[str_int][stf_int].can_castle = False
+            
+            # Update rank and file
+            self.rank, self.file = str_int, stf_int
 
         return move_valid
 
@@ -120,6 +127,8 @@ class Rook(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'rook'
         self.can_castle = True
 
@@ -224,6 +233,9 @@ class Rook(Piece):
             if not queen_move:
                 self.can_castle = False
 
+            # Update rank and file
+            self.rank, self.file = str_int, stf_int
+
         return move_valid
 
     def __repr__(self) -> str:
@@ -239,6 +251,8 @@ class Knight(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'knight'
 
     def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
@@ -304,6 +318,9 @@ class Knight(Piece):
                     board[str_int][stf_int].colour == opp_col:
                 board[str_int][stf_int].can_castle = False
 
+            # Update rank and file
+            self.rank, self.file = str_int, stf_int
+
         return move_valid
 
     def __repr__(self) -> str:
@@ -320,6 +337,8 @@ class Bishop(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'bishop'
 
     def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
@@ -399,6 +418,9 @@ class Bishop(Piece):
                     board[str_int][stf_int].colour == opp_col:
                 board[str_int][stf_int].can_castle = False
 
+            # Update rank and file
+            self.rank, self.file = str_int, stf_int
+
         return move_valid
 
     def __repr__(self) -> str:
@@ -414,6 +436,8 @@ class Queen(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'queen'
 
     def move(self, square_from: str, square_to: str, kings_positions: list[tuple],
@@ -427,9 +451,13 @@ class Queen(Piece):
         #                        board, sqv, queen_move=True, checking_pieces=checking_pieces)
         # return bishop_check or rook_check
         if bishop_check:
+            self.rank, self.file = bishop.rank, bishop.file
             return bishop_check
-        return rook.move(square_from, square_to, kings_positions, king_under_check,
+        rook_check = rook.move(square_from, square_to, kings_positions, king_under_check,
                          board, sqv, queen_move=True, checking_pieces=checking_pieces)
+        if rook_check:
+            self.rank, self.file = rook.rank, rook.file
+        return rook_check
 
     def __repr__(self) -> str:
         return f"{self.colour} {self.name}"
@@ -444,6 +472,8 @@ class King(Piece):
     def __init__(self, colour: str = None) -> None:
         self.dc = DiscoveredChecks()
         self.colour = colour
+        self.rank = None
+        self.file = None
         self.name = 'king'
         self.can_castle = True
 
@@ -596,7 +626,6 @@ class King(Piece):
         if square_to_occupant == -1 or (not file_diff and not rank_diff) or file_diff > 2 or abs(rank_diff) > 1:
             return False
         elif file_diff == 2:
-            # print(f"check castling {king_colour} king")
             return not king_under_check[king_idx] and \
                  self.validate_castling(sfr_int, sff_int, stf_int, str_int, king_under_check,
                         king_colour, king_idx, kings_positions, board, flipped, checking_pieces)
@@ -635,6 +664,9 @@ class King(Piece):
                 elif other_dcr:
                     king_under_check[king_idx ^ 1] = True
                     checking_pieces[opp_col].append(other_dcr)
+
+                # Update rank and file
+                self.rank, self.file = str_int, stf_int
 
             else:
                 return False

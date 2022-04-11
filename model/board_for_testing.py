@@ -26,8 +26,10 @@ class Board:
                 # bishops
                 elif (rank, file) in [(0,2), (0,5)]:
                     self.board[7-rank][7-file] = Bishop(colour="black")
+                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
                 elif (rank, file) in [(7,2), (7,5)]:
                     self.board[7-rank][7-file] = Bishop(colour="white")
+                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
                 # queens
                 elif (rank, file) == (0,3):
                     self.board[7-rank][file] = Queen(colour="black")
@@ -38,4 +40,8 @@ class Board:
                     self.board[7-rank][file] = King(colour="black")
                 elif (rank, file) == (7,4):
                     self.board[7-rank][file] = King(colour="white")
+
+                if self.board[7-rank][file]:
+                    img_name = self.board[7-rank][file].colour + ' ' + self.board[7-rank][file].name
+                    self.board[7-rank][file].rank, self.board[7-rank][file].file = 7-rank, file
 

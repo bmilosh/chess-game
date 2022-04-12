@@ -3,6 +3,8 @@ from model.pieces import *
 class Board:
     def __init__(self) -> None:
         self.board = [[0] * 8 for _ in range(8)]
+        self.white_active_pieces = []
+        self.black_active_pieces = []
         for rank in range(7,-1,-1):
             # if rank == 1:
             #     self.board[7-rank] = ['b_pa'] * 8
@@ -24,12 +26,10 @@ class Board:
                 elif (rank, file) in [(7,1), (7,6)]:
                     self.board[7-rank][file] = Knight(colour="white")
                 # bishops
-                elif (rank, file) in [(0,2), (0,5)]:
-                    self.board[7-rank][7-file] = Bishop(colour="black")
-                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                elif (rank, file) in [(7,2), (7,5)]:
-                    self.board[7-rank][7-file] = Bishop(colour="white")
-                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                elif (rank, file) in [(0, 2), (0, 5)]:
+                    self.board[7-rank][file] = Bishop(colour="black")
+                elif (rank, file) in [(7, 2), (7, 5)]:
+                    self.board[7-rank][file] = Bishop(colour="white")
                 # queens
                 elif (rank, file) == (0,3):
                     self.board[7-rank][file] = Queen(colour="black")
@@ -42,6 +42,10 @@ class Board:
                     self.board[7-rank][file] = King(colour="white")
 
                 if self.board[7-rank][file]:
-                    img_name = self.board[7-rank][file].colour + ' ' + self.board[7-rank][file].name
+                    p = self.board[7-rank][file]
+                    if p.colour == 'white':
+                        self.white_active_pieces.append(p)
+                    else:
+                        self.black_active_pieces.append(p)
                     self.board[7-rank][file].rank, self.board[7-rank][file].file = 7-rank, file
 

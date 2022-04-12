@@ -1,5 +1,5 @@
-from model.pieces import *
-from model.discovered_checks import DiscoveredChecks
+from model.pieces import King
+from model.legal_moves_getter import LegalMovesGetter
 
 
 class CheckmateChecker:
@@ -9,80 +9,94 @@ class CheckmateChecker:
 
     Checkmate means the check can't be evaded."""
 
-    def __init__(self, checking_pieces: list, active_pieces: list, board: list[list]) -> None:
-        self.checking_pieces = checking_pieces
-        self.active_pieces = active_pieces
-        self.lmg = LegalMovesGetter(board)
-        self.is_checkmate = self.evaluate_check()
+    def __init__(self, lmg: LegalMovesGetter) -> None:
+        # self.king = king
+        # self.checking_pieces = checking_pieces
+        # self.active_pieces = active_pieces
+        self.lmg = lmg
+        # self.kp = kings_positions
+        # self.kuc = king_under_check
+        # self.colour = colour
+        # self.flipped = flipped
+        # self.is_checkmate = self.evaluate_check()
 
-    def evaluate_check(self) -> bool:
-        if len(self.checking_pieces) != 1:
-            # king has to move, else it's game over.
-            pass
+    def is_checkmate(self, king: King, checking_pieces: dict, active_pieces: list, \
+            kings_positions: list[tuple], king_under_check, colour, flipped=False) -> bool:
+        if len(checking_pieces[colour]) > 1:
+            if self.lmg.get_king_legal_moves(king, kings_positions, checking_pieces, king_under_check, flipped):
+                # There are legal ways for the king to get out of this check, hence it's not a checkmate.
+                return False
+            return True
+        elif not checking_pieces[colour]:
+            return False
+        # self.active_pieces = active_pieces
+        return self.get_legal_moves(active_pieces, kings_positions, king_under_check, checking_pieces)
 
-    def get_blocking_squares(self) -> list:
-        pass
-
-
-class LegalMovesGetter:
-    """
-    Given a piece, it returns a list of all
-    its available legal moves."""
-
-    def __init__(self, board: list[list]) -> None:
-        self.board = board
-        self.dc = DiscoveredChecks()
-
-    def get_square_occupant(self, str_int, stf_int, opp_col):
-        try:
-            occ = self.board[str_int][stf_int]
-        except IndexError:
-            raise
-        else:
-            if occ:
-                return 1 if occ.colour == opp_col else -1
-            return 0
-
-    def get_pawn_legal_moves(self, p: Pawn, king_position: tuple, checking_pieces: dict) -> list:
-        def get_occ(r, f):
-            # r = r if col == "white" else -r
-            if 0 <= p.rank + r <= 7 and 0 <= p.file + f <= 7:
-                return self.get_square_occupant(p.rank + r, p.file + f, opp_col)
-            return float("inf")
-        legal_moves = []
-        col = p.colour
-        opp_col = "white" if col == "black" else "black"
-
-        # forward movement
-        for r, f in [(1, 0), (2, 0)]:
-            r = r if col == "white" else -r
-            if (abs(r) == 2 and p.rank not in [1, 6]) or get_occ(r, f) or \
-                self.dc.verify_own_king(king_position, opp_col, p.file, p.rank,
-                                        p.file+f, p.rank + r, self.board, checking_pieces):
-                break
+    def get_legal_moves(self, active_pieces, kings_positions, king_under_check, checking_pieces, flipped=False) -> list:
+        for piece in active_pieces:
+            name = piece.name
+            if name == 'pawn':
+                legal_moves = self.lmg.get_pawn_legal_moves(piece, kings_positions, checking_pieces, flipped)
+            elif name == 'rook':
+                legal_moves = self.lmg.get_rook_legal_moves(piece, kings_positions, checking_pieces)
+            elif name == 'bishop':
+                legal_moves = self.lmg.get_bishop_legal_moves(piece, kings_positions, checking_pieces)
+            elif name == 'knight':
+                legal_moves = self.lmg.get_knight_legal_moves(piece, kings_positions, checking_pieces)
+            elif name == 'queen':
+                legal_moves = self.lmg.get_queen_legal_moves(piece, kings_positions, checking_pieces)
             else:
-                legal_moves.append((p.rank+r, p.file+f))
+                legal_moves = self.lmg.get_king_legal_moves(piece, kings_positions, checking_pieces, king_under_check, flipped)
+            if legal_moves:
+                return False
+        return True
 
-        # Captures
-        for r, f in [(1, -1), (1, 1)]:
-            r = r if col == "white" else -r
-            if get_occ(r, f) == 1 and not self.dc.verify_own_king(king_position,
-                                                                  opp_col, p.file, p.rank, p.file+f, p.rank + r, self.board, checking_pieces):
-                legal_moves.append((p.rank+r, p.file+f))
 
-        return legal_moves
 
-    def get_rook_legal_moves(self, r: Rook, king_position: tuple, checking_pieces: dict) -> list:
-        pass
+# class CheckmateChecker:
+#     """
+#     Used to check if a king currently under check can 
+#     become safe.
 
-    def get_knight_legal_moves(self, kn: Knight, king_position: tuple, checking_pieces: dict) -> list:
-        pass
+#     Checkmate means the check can't be evaded."""
 
-    def get_bishop_legal_moves(self, b: Bishop, king_position: tuple, checking_pieces: dict) -> list:
-        pass
+#     def __init__(self, king: King, checking_pieces: dict, active_pieces: list, board: list[list], \
+#             kings_positions: list[tuple], king_under_check, colour, flipped=False) -> None:
+#         self.king = king
+#         self.checking_pieces = checking_pieces
+#         self.active_pieces = active_pieces
+#         self.lmg = LegalMovesGetter(board)
+#         self.kp = kings_positions
+#         self.kuc = king_under_check
+#         self.colour = colour
+#         self.flipped = flipped
+#         self.is_checkmate = self.evaluate_check()
 
-    def get_queen_legal_moves(self, q: Queen, king_position: tuple, checking_pieces: dict) -> list:
-        pass
+#     def evaluate_check(self) -> bool:
+#         if len(self.checking_pieces[self.colour]) > 1:
+#             if self.lmg.get_king_legal_moves(self.king, self.kp, self.checking_pieces, self.kuc, self.flipped):
+#                 # There are legal ways for the king to get out of this check, hence it's not a checkmate.
+#                 return False
+#             return True
+#         elif not self.checking_pieces[self.colour]:
+#             return False
+#         return self.get_legal_moves()
 
-    def get_king_legal_moves(self, k: King, king_position: tuple, checking_pieces: dict) -> list:
-        pass
+#     def get_legal_moves(self) -> list:
+#         for piece in self.active_pieces:
+#             name = piece.name
+#             if name == 'pawn':
+#                 legal_moves = self.lmg.get_pawn_legal_moves(piece, self.kp, self.checking_pieces, flipped=self.flipped)
+#             elif name == 'rook':
+#                 legal_moves = self.lmg.get_rook_legal_moves(piece, self.kp, self.checking_pieces)
+#             elif name == 'bishop':
+#                 legal_moves = self.lmg.get_bishop_legal_moves(piece, self.kp, self.checking_pieces)
+#             elif name == 'knight':
+#                 legal_moves = self.lmg.get_knight_legal_moves(piece, self.kp, self.checking_pieces)
+#             elif name == 'queen':
+#                 legal_moves = self.lmg.get_queen_legal_moves(piece, self.kp, self.checking_pieces)
+#             else:
+#                 legal_moves = self.lmg.get_king_legal_moves(piece, self.kp, self.checking_pieces, self.kuc, self.flipped)
+#             if legal_moves:
+#                 return False
+#         return True

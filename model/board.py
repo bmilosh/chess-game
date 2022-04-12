@@ -3,6 +3,8 @@ import tkinter as tk
 
 from PIL import Image, ImageTk
 
+from model.checkmate_checker import CheckmateChecker
+from model.legal_moves_getter import LegalMovesGetter
 from model.pieces import *
 from model.square_validator import SquareValidator
 
@@ -65,6 +67,7 @@ class Board(tk.Frame):
     def reset_variables(self):
         self.board = [[0] * 8 for _ in range(8)]
         self.previous_move = []
+        self.legal_moves = []
         self.moving_img = ''
         self.moving_label: tk.Label = None
         self.last_move_by = 0
@@ -97,11 +100,21 @@ class Board(tk.Frame):
             self.kings_widgets: list[tk.Label] = [
                 self.children['!label61'], self.children['!label5']]
             self.reconfigure_labels()
-            # Reset castling priviledges 
-            for r, f in [(0,0), (0,7), (7,0), (7,7), (0,4), (7,4)]:
-                self.board[r][f].can_castle = True
+            for r in range(8):
+                for f in range(8):
+                    # Reset piece rank and file attributes 
+                    if self.board[r][f]:
+                        self.board[r][f].rank, self.board[r][f].file = r, f
+                    # Reset castling priviledges 
+                    if (r, f) in [(0,0), (0,7), (7,0), (7,7), (0,4), (7,4)]:
+                        self.board[r][f].can_castle = True
+            # # Reset castling priviledges 
+            # for r, f in [(0,0), (0,7), (7,0), (7,7), (0,4), (7,4)]:
+            #     self.board[r][f].can_castle = True
         else:
             self._add_labels()
+        self.lmg_getter = LegalMovesGetter(self.board)
+        self.mate_checker = CheckmateChecker(self.lmg_getter)
 
     def reconfigure_labels(self):
         for r in range(8):
@@ -118,6 +131,31 @@ class Board(tk.Frame):
         return board_entry.move(square_from, square_to, self.kings_positions,
                                   self.king_under_check, self.board, self.sqv,
                                   flipped=self.flipped, checking_pieces=self.checking_pieces)
+
+    def get_legal_moves(self, board_entry):
+        if isinstance(board_entry, Pawn):
+            print(f"current pawn pos: {board_entry.rank=} {board_entry.file=}")
+            self.legal_moves = self.lmg_getter.get_pawn_legal_moves(board_entry, self.kings_positions, \
+                    self.checking_pieces, flipped=self.flipped)
+        
+        elif isinstance(board_entry, Knight):
+            self.legal_moves = self.lmg_getter.get_knight_legal_moves(board_entry, self.kings_positions, self.checking_pieces)
+        
+        elif isinstance(board_entry, Rook):
+            self.legal_moves = self.lmg_getter.get_rook_legal_moves(board_entry, self.kings_positions, self.checking_pieces)
+        
+        elif isinstance(board_entry, Bishop):
+            self.legal_moves = self.lmg_getter.get_bishop_legal_moves(board_entry, self.kings_positions, self.checking_pieces)
+        
+        elif isinstance(board_entry, Queen):
+            self.legal_moves = self.lmg_getter.get_queen_legal_moves(board_entry, self.kings_positions, self.checking_pieces)
+        
+        elif isinstance(board_entry, King):
+            self.legal_moves = self.lmg_getter.get_king_legal_moves(board_entry, self.kings_positions, \
+                    self.checking_pieces, self.king_under_check, flipped=self.flipped)
+        
+        else:
+            raise ValueError(f"Trying to move unrecognised piece: {board_entry=}")
 
     def get_rank_and_file_from_label(self, name: int):
         try:
@@ -153,12 +191,36 @@ class Board(tk.Frame):
                 self.kings_positions[1] = new_position
                 self.kings_widgets[1] = widget
 
+    def show_legal_moves(self):
+        for r, f in self.legal_moves:
+            lab = self.get_label_from_rank_and_file(r, f)
+            w = self.children[lab]
+            w.configure(bg='#a5e8b7')
+    
+    def unshow_legal_moves(self):
+        for r, f in self.legal_moves:
+            lab = self.get_label_from_rank_and_file(r, f)
+            w = self.children[lab]
+            if w in self.previous_move:
+                self.restore_label_colour(w, True)
+            else:
+                self.restore_label_colour(w)
+
+    def show_mate(self, king: King, active_pieces: list, colour):
+        if self.mate_checker.is_checkmate(king, self.checking_pieces, active_pieces, self.kings_positions,\
+                    self.king_under_check, colour, self.flipped):
+            print("**************** There's a checkmate on the board!!! ****************")
+
     def show_checked_king(self):
         if self.king_under_check[0]:
+            king = self.board[self.kings_positions[0][0]][self.kings_positions[0][1]]
+            self.show_mate(king, self.black_active_pieces, "black")
             w = self.kings_widgets[0]
             w.configure(bg="red")
             print(w)
         if self.king_under_check[1]:
+            king = self.board[self.kings_positions[1][0]][self.kings_positions[1][1]]
+            self.show_mate(king, self.white_active_pieces, "white")
             w = self.kings_widgets[1]
             w.configure(bg="red")
             print(w)
@@ -189,8 +251,12 @@ class Board(tk.Frame):
             if not self.board[rank][file] or \
                     ((self.board[rank][file].colour == 'black' and self.last_move_by != 1) or
                     (self.board[rank][file].colour == 'white' and self.last_move_by != 0)):
-                pass
+                # self.unshow_legal_moves()
+                self.legal_moves.clear()
             else:
+                k = 0 if p.colour == "black" else 1
+                self.get_legal_moves(p)
+                self.show_legal_moves()
                 w.configure(bg=self.clicked_colour)
                 # self.clicked = True
                 self.previous_move.append(w)
@@ -201,17 +267,24 @@ class Board(tk.Frame):
         square_from = self.files[f2] + str(r2+1)
         square_to = f"{self.files[file]}{rank+1}"
         entry = self.board[r2][f2]
+        # if entry.name == 'pawn':
+        #     move_valid = (rank, file) in self.legal_moves
+        # else:
+        #     move_valid = self.verify_move(entry, square_from, square_to)
         move_valid = self.verify_move(entry, square_from, square_to)
         if not move_valid:
             # print(
             #     f"Invalid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
             self.previous_move.pop()
             self.restore_label_colour(self.moving_label)
+            # self.unshow_legal_moves()
+            # self.legal_moves.clear()
+
         else:
             # print(
             #     f"Valid move: {entry=},{rank=},{file=},{r2=},{f2=},{self.board[rank][file]}")
             self.update_active_pieces(rank, file)
-            print(len(self.white_active_pieces), len(self.black_active_pieces))
+            # print(len(self.white_active_pieces), len(self.black_active_pieces))
             self.update_board(w, rank, file, r2, f2, entry)
             self.update_castling_options(r2, f2, rank, file, entry)
             self.update_previous_move_list(w)
@@ -219,8 +292,14 @@ class Board(tk.Frame):
             self.show_checked_king()
             self.show_unchecked_king()
             self.last_move_by ^= 1
+            ##########
+            ## Doing this here in case we eventually bypass the move methods
+            ## of the pieces. If so, will also need to update checks differently.
+            entry.rank, entry.file = rank, file
         self.moving_label: tk.Label = None
         self.moving_img = ''
+        self.unshow_legal_moves()
+        self.legal_moves.clear()
 
     def update_active_pieces(self, rank, file, promoted_piece=None, rank_from=None, file_from=None):
         """
@@ -310,13 +389,15 @@ class Board(tk.Frame):
 
     def enter_focus(self, event: tk.Event):
         w = event.widget
-        if w.master == self and w not in self.previous_move:
+        r, f = self.get_rank_and_file_from_label(str(w))
+        if w.master == self and w not in self.previous_move and (r, f) not in self.legal_moves:
             if w not in self.kings_widgets or not self.king_under_check[self.kings_widgets.index(w)]:
                 w.configure(bg='#a7aac4')
 
     def leave_focus(self, event: tk.Event):
         w = event.widget
-        if w.master == self and w not in self.previous_move:
+        r, f = self.get_rank_and_file_from_label(str(w))
+        if w.master == self and w not in self.previous_move and (r, f) not in self.legal_moves:
             if w not in self.kings_widgets or not self.king_under_check[self.kings_widgets.index(w)]:
                 self.restore_label_colour(w)
 
@@ -348,17 +429,17 @@ class Board(tk.Frame):
                     self.board[7-rank][file] = Knight(colour="white")
                 # bishops
                 elif (rank, file) in [(0, 2), (0, 5)]:
-                    self.board[7-rank][7-file] = Bishop(colour="black")
-                    img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
-                    cell.configure(image=self.img_dict[img_name])
-                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                    self.black_active_pieces.append(self.board[7-rank][7-file])
+                    self.board[7-rank][file] = Bishop(colour="black")
+                    # img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
+                    # cell.configure(image=self.img_dict[img_name])
+                    # self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                    # self.black_active_pieces.append(self.board[7-rank][7-file])
                 elif (rank, file) in [(7, 2), (7, 5)]:
-                    self.board[7-rank][7-file] = Bishop(colour="white")
-                    img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
-                    cell.configure(image=self.img_dict[img_name])
-                    self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                    self.white_active_pieces.append(self.board[7-rank][7-file])
+                    self.board[7-rank][file] = Bishop(colour="white")
+                    # img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
+                    # cell.configure(image=self.img_dict[img_name])
+                    # self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
+                    # self.white_active_pieces.append(self.board[7-rank][7-file])
                 # queens
                 elif (rank, file) == (0, 3):
                     self.board[7-rank][file] = Queen(colour="black")
@@ -384,15 +465,7 @@ class Board(tk.Frame):
                     elif self.board[7-rank][file].colour == "black" and \
                             self.board[7-rank][file] not in self.black_active_pieces:
                         self.black_active_pieces.append(self.board[7-rank][file])
-                # elif self.board[7-rank][7-file]:
-                #     img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
-                #     print(f"{img_name=}, {7-rank=}, {file=}")
-                #     cell.configure(image=self.img_dict[img_name])
-                #     self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                #     if self.board[7-rank][7-file].colour == "white":
-                #         self.white_active_pieces.append(self.board[7-rank][7-file])
-                #     else:
-                #         self.black_active_pieces.append(self.board[7-rank][7-file])
+
 
                 cell.place(relx=file * SQUARE_RATIO, rely=rank * SQUARE_RATIO,
                            relheight=SQUARE_RATIO, relwidth=SQUARE_RATIO)
@@ -404,8 +477,3 @@ class Board(tk.Frame):
         self.temp_board = [list(itm) for itm in self.board]
         self.temp_wap = list(self.white_active_pieces)
         self.temp_bap = list(self.black_active_pieces)
-        # print(*self.board, sep='\n')
-        # print(len(self.black_active_pieces))
-        # print(self.black_active_pieces)
-        # print(len(self.white_active_pieces))
-        # print(self.white_active_pieces)

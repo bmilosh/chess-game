@@ -1,73 +1,52 @@
 import unittest
 
 from model.board_for_testing import Board
-from model.checkmate_checker import LegalMovesGetter
+from model.checkmate_checker import CheckmateChecker
+from model.legal_moves_getter import LegalMovesGetter
 from model.pieces import *
 
 
-class TestLegalMovesGetter(unittest.TestCase):
+class TestCheckmateChecker(unittest.TestCase):
     """
     1 - enemy
     -1 - teammate
     0 - empty
     """
-    checking_pieces = {'black': [], 'white': []}
 
-    def test_should_get_legal_pawn_moves_black(self):
+    def test_should_verify_checkmate(self):
         b = Board()
-        lgm_getter = LegalMovesGetter(b.board)
         kp = [(7, 4), (0, 4)]
+        kuc = [False, False]
         checking_pieces = {'black': [], 'white': []}
+        lmg = LegalMovesGetter(b.board)
 
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[6][0], kp[0], checking_pieces)
-        self.assertEqual({(5, 0), (4, 0)}, set(lgm))
+        b.board[4][2] = Bishop("black")
+        b.board[4][2].rank,  b.board[4][2].file = 4, 2
+        b.board[1][5] = Queen("black")
+        b.board[1][5].rank,  b.board[1][5].file = 1, 5
+        checking_pieces['white'].append((b.board[1][5], (1, 5)))
+        kuc[1] = True
+        king = b.board[0][4]
 
-        b.board[5][1] = Pawn("white")
-        b.board[5][3] = Pawn("white")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[6][2], kp[0], checking_pieces)
-        self.assertEqual({(5, 1), (5, 3), (5, 2), (4, 2)}, set(lgm))
+        cmate_getter = CheckmateChecker(lmg)
+        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "white")
+        self.assertEqual(True, is_chkmate)
 
-        # Pinned pawn
-        b.board[4][1] = Bishop("white")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[6][3], kp[0], checking_pieces)
-        self.assertEqual([], lgm)
+        # Not a checkmate on black
+        b.board[6][5] = 0
+        b.board[4][7] = Queen("white")
+        b.board[4][7].rank, b.board[4][7].file = 4, 7
+        checking_pieces["black"].append((b.board[4][7], (4, 7)))
+        checking_pieces["white"].clear()
+        kuc = [True, False]
+        king = b.board[7][4]
+        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
+        self.assertEqual(False, is_chkmate)
 
-        # blocked pawn
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[6][1], kp[0], checking_pieces)
-        self.assertEqual([], lgm)
-
-    def test_should_get_legal_pawn_moves_white(self):
-        b = Board()
-        lgm_getter = LegalMovesGetter(b.board)
-        kp = [(7, 4), (0, 4)]
-        checking_pieces = {'black': [], 'white': []}
-
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][3], kp[1], checking_pieces)
-        self.assertEqual({(2, 3), (3, 3)}, set(lgm))
-
-        b.board[2][3] = Pawn("white")
-        b.board[2][3].rank, b.board[2][3].file = 2, 3
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[2][3], kp[1], checking_pieces)
-        self.assertEqual({(3, 3)}, set(lgm))
-
-        b.board[2][6] = Pawn("black")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][7], kp[1], checking_pieces)
-        self.assertEqual({(2, 6), (2, 7), (3, 7)}, set(lgm))
-
-        b.board[2][1] = Pawn("black")
-        b.board[2][2] = Pawn("black")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][1], kp[1], checking_pieces)
-        self.assertEqual({(2, 2)}, set(lgm))
-
-        b.board[2][5] = Rook("black")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][4], kp[1], checking_pieces)
-        self.assertEqual({(2, 5), (2, 4), (3, 4)}, set(lgm))
-
-        b.board[2][4] = Pawn("black")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][4], kp[1], checking_pieces)
-        self.assertEqual({(2, 5)}, set(lgm))
-
-        # Pinned pawn
-        b.board[2][4] = Queen("black")
-        lgm = lgm_getter.get_pawn_legal_moves(b.board[1][4], kp[1], checking_pieces)
-        self.assertEqual([], lgm)
+        # Check on black by two pieces. Not a checkmate
+        b.board[6][4] = 0
+        b.board[5][3] = Knight("white")
+        b.board[5][3].rank, b.board[5][3].file = 5, 3
+        checking_pieces["black"].append((b.board[5][3], (5, 3)))
+        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
+        self.assertEqual(False, is_chkmate)

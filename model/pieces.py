@@ -158,7 +158,6 @@ class Rook(Piece):
                     if board[r][f] != 0:
                         not_zero += 1
         if not_zero == 1:
-            print("checking from rook")
             king_under_check[king_idx] = True
             checking_pieces[opp_col].append((entry, (str_int, stf_int)))
         board[str_int][stf_int] = temp

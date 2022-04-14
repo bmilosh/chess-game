@@ -15,6 +15,7 @@ class Board(tk.Frame):
     # Colours
     board_colours1 = ['#4a390a', '#ebd086']  # 918051
     board_colours = ['#4f462c', '#ebd086']
+    available_moves_colours = ['#cee0d3', '#cae8d2']
     focus_colour = '#ebd086'
     clicked_or_released_colour = ['#ded3b1', '#d9d2bf']
     clicked_colour = '#818399'
@@ -134,7 +135,6 @@ class Board(tk.Frame):
 
     def get_legal_moves(self, board_entry):
         if isinstance(board_entry, Pawn):
-            print(f"current pawn pos: {board_entry.rank=} {board_entry.file=}")
             self.legal_moves = self.lmg_getter.get_pawn_legal_moves(board_entry, self.kings_positions, \
                     self.checking_pieces, flipped=self.flipped)
         
@@ -173,14 +173,15 @@ class Board(tk.Frame):
         return f"!label{(rank*8) + file + 1}"
 
     def update_previous_move_list(self, w: tk.Widget):
-        if len(self.previous_move) == 1:
-            # Give it a clicked_or_released colour
-            self.restore_label_colour(self.previous_move[0], previous=True)
-        elif len(self.previous_move) == 3:
-            for i in range(2):
-                self.restore_label_colour(self.previous_move[i])
-            self.previous_move = [self.previous_move[2]]
         self.previous_move.append(w)
+        end = 2 if len(self.previous_move) == 4 else 0
+        for i in range(end):
+            # Restore their original colour
+            self.restore_label_colour(self.previous_move[i])
+        for j in range(end, len(self.previous_move)):
+            # Give it a clicked_or_released colour
+            self.restore_label_colour(self.previous_move[j], previous=True)
+        self.previous_move = self.previous_move[end:]
 
     def update_king_position(self, last_moved_piece: str, new_position: tuple, widget):
         if last_moved_piece.name == 'king':
@@ -195,16 +196,19 @@ class Board(tk.Frame):
         for r, f in self.legal_moves:
             lab = self.get_label_from_rank_and_file(r, f)
             w = self.children[lab]
-            w.configure(bg='#a5e8b7')
+            w.configure(bg=self.available_moves_colours[(r+f) % 2])
     
     def unshow_legal_moves(self):
         for r, f in self.legal_moves:
             lab = self.get_label_from_rank_and_file(r, f)
             w = self.children[lab]
             if w in self.previous_move:
+                # print(f"update PMC from legal_moves {w}")
                 self.restore_label_colour(w, True)
             else:
+                # print(f"update MC from legal_moves {w}")
                 self.restore_label_colour(w)
+            # print()
 
     def show_mate(self, king: King, active_pieces: list, colour):
         if self.mate_checker.is_checkmate(king, self.checking_pieces, active_pieces, self.kings_positions,\
@@ -217,13 +221,13 @@ class Board(tk.Frame):
             self.show_mate(king, self.black_active_pieces, "black")
             w = self.kings_widgets[0]
             w.configure(bg="red")
-            print(w)
+            print(w, "is under check")
         if self.king_under_check[1]:
             king = self.board[self.kings_positions[1][0]][self.kings_positions[1][1]]
             self.show_mate(king, self.white_active_pieces, "white")
             w = self.kings_widgets[1]
             w.configure(bg="red")
-            print(w)
+            print(w, "is under check")
 
     def show_unchecked_king(self):
         if not self.king_under_check[0]:
@@ -332,11 +336,11 @@ class Board(tk.Frame):
             last_moved_piece.rank, last_moved_piece.file = rank, file
             self.update_active_pieces(rank, file, promoted_piece=last_moved_piece, rank_from=rank_from, file_from=file_from)
             img_key = f"{last_moved_piece.colour} queen"
-            w.configure(image=self.img_dict[img_key],
-                        bg=self.clicked_or_released_colour[(rank+file) % 2])
+            w.configure(image=self.img_dict[img_key]) #,
+                        # bg=self.clicked_or_released_colour[(rank+file) % 2])
         else:
-            w.configure(image=self.moving_img,
-                        bg=self.clicked_or_released_colour[(rank+file) % 2])
+            w.configure(image=self.moving_img) #,
+                        # bg=self.clicked_or_released_colour[(rank+file) % 2])
         self.board[rank][file] = last_moved_piece
         self.moving_label.configure(image='')
         self.board[rank_from][file_from] = 0
@@ -367,7 +371,6 @@ class Board(tk.Frame):
             else:
                 last_moved_piece.can_castle = False
 
-
     def single_click(self, event: tk.Event):
         w = event.widget
         n = str(w)
@@ -383,6 +386,7 @@ class Board(tk.Frame):
         if w in self.kings_widgets and self.king_under_check[self.kings_widgets.index(w)]:
             self.show_checked_king()
         elif w in self.previous_move and previous:  
+            # print(f"we're updating a previous move {w}")
             w.configure(bg=self.clicked_or_released_colour[(r+f) % 2])
         else:
             w.configure(bg=self.board_colours[(r+f) % 2])
@@ -399,6 +403,7 @@ class Board(tk.Frame):
         r, f = self.get_rank_and_file_from_label(str(w))
         if w.master == self and w not in self.previous_move and (r, f) not in self.legal_moves:
             if w not in self.kings_widgets or not self.king_under_check[self.kings_widgets.index(w)]:
+                # print("updating colour from leave_focus")
                 self.restore_label_colour(w)
 
     def _add_labels(self):
@@ -430,16 +435,8 @@ class Board(tk.Frame):
                 # bishops
                 elif (rank, file) in [(0, 2), (0, 5)]:
                     self.board[7-rank][file] = Bishop(colour="black")
-                    # img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
-                    # cell.configure(image=self.img_dict[img_name])
-                    # self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                    # self.black_active_pieces.append(self.board[7-rank][7-file])
                 elif (rank, file) in [(7, 2), (7, 5)]:
                     self.board[7-rank][file] = Bishop(colour="white")
-                    # img_name = self.board[7-rank][7-file].colour + ' ' + self.board[7-rank][7-file].name
-                    # cell.configure(image=self.img_dict[img_name])
-                    # self.board[7-rank][7-file].rank, self.board[7-rank][7-file].file = 7-rank, 7-file
-                    # self.white_active_pieces.append(self.board[7-rank][7-file])
                 # queens
                 elif (rank, file) == (0, 3):
                     self.board[7-rank][file] = Queen(colour="black")

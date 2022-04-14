@@ -31,6 +31,12 @@ class MainBody(tk.Tk):
         except ValueError:
             return 1
 
+    def update_piece_attrs(self, i, j):
+        if self.board.board[i][j]:
+            self.board.board[i][j].rank, self.board.board[i][j].file = i, j
+        if self.board.board[7-i][7-j]:
+            self.board.board[7-i][7-j].rank, self.board.board[7-i][7-j].file = 7-i, 7-j
+
     def flip_command(self):
         for i in range(4):
             d = i if not self.board.flipped else 7-i
@@ -46,6 +52,7 @@ class MainBody(tk.Tk):
             for j in range(8):
                 self.board.board[i][j], self.board.board[7-i][7 -
                                                               j] = self.board.board[7-i][7-j], self.board.board[i][j]
+                self.update_piece_attrs(i, j)
                 if i or j:
                     first = f'!label{(i * 8) + j + 1}'
                 else:

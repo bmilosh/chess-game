@@ -1,5 +1,6 @@
 from model.discovered_checks import DiscoveredChecks
-from model.pieces import *
+from model.pieces_old import *
+
 
 class LegalMovesGetter:
     """
@@ -37,7 +38,7 @@ class LegalMovesGetter:
             elif not disc_check:
                 # Valid move. If it's the first good move,
                 # update safe and disc.
-                safe = True if disc is None else safe 
+                safe = True if disc is None else safe
                 disc = False if disc is None else disc
             if occ == 1:
                 captured = True
@@ -85,7 +86,7 @@ class LegalMovesGetter:
             if (abs(r) == 2 and p.rank not in [1, 6]) or get_occ(r, f):
                 break
             if self.dc.verify_own_king(king_position, opp_col, p.file, p.rank,
-                                        p.file+f, p.rank + r, self.board, checking_pieces):
+                                       p.file+f, p.rank + r, self.board, checking_pieces):
                 continue
             else:
                 legal_moves.append((p.rank+r, p.file+f))
@@ -148,8 +149,8 @@ class LegalMovesGetter:
             if occ == -1 or (not r and not f):
                 return
             if k._is_safe(file+f, rank+r, col, self.board, kings_positions, flipped):
-                if f not in [2, -2] or (not king_under_check[idx] and\
-                        k.validate_castling(rank, file, file+f, rank+r, king_under_check,
+                if f not in [2, -2] or (not king_under_check[idx] and
+                                        k.validate_castling(rank, file, file+f, rank+r, king_under_check,
                                         col, idx, kings_positions, self.board, flipped, checking_pieces)):
                     legal_moves.append((rank + r, file + f))
         legal_moves = []

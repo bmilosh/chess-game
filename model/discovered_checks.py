@@ -13,34 +13,34 @@ class DiscoveredChecks:
 
     def verify_own_king(self, king_pos, opp_col,
                         sff_int, sfr_int, stf_int, str_int, board, checking_pieces):
-        
+
         temp = board[sfr_int][sff_int]
         board[sfr_int][sff_int] = 0
         col = 'black' if opp_col == 'white' else 'white'
-        
+
         unchk = self.unchecker.uncheck(
             stf_int, str_int, king_pos, checking_pieces[col])
-        
+
         dc_b = self.discovered_check_bishop(king_pos,
                                             opp_col, sff_int, sfr_int, stf_int, str_int, board)
-        
+
         dc_r = self.discovered_check_rook(king_pos,
                                           opp_col, sff_int, sfr_int, stf_int, str_int, board)
-        
+
         board[sfr_int][sff_int] = temp
         return (dc_b or dc_r) or not unchk
 
     def verify_opposing_king(self, king_pos, col,
                              sff_int, sfr_int, stf_int, str_int, board):
-        
+
         temp = board[sfr_int][sff_int]
         board[sfr_int][sff_int] = 0
-        
-        dc_b = self.discovered_check_bishop(king_pos, 
+
+        dc_b = self.discovered_check_bishop(king_pos,
                                             col, sff_int, sfr_int, stf_int, str_int, board)
-        dc_r = self.discovered_check_rook(king_pos, 
+        dc_r = self.discovered_check_rook(king_pos,
                                           col, sff_int, sfr_int, stf_int, str_int, board)
-        
+
         board[sfr_int][sff_int] = temp  # set back to original state
         return dc_b, dc_r
 
@@ -63,7 +63,7 @@ class DiscoveredChecks:
                     piece = board[r][f]
                     if piece != 0:
                         if piece.colour == col and piece.name in ['bishop', 'queen']:
-                        # if piece in (col + '_bi', col + '_qu'):
+                            # if piece in (col + '_bi', col + '_qu'):
                             return piece, (r, f)
                         return False
                 else:
@@ -88,15 +88,15 @@ class DiscoveredChecks:
                 f_dir, end_file, king_file = 1, king_file+1, king_file-1
                 fill_value = king_file+1
 
-            for r, f in zip_longest(range(king_rank+r_dir, end_rank, r_dir), \
-                    range(king_file+f_dir, end_file, f_dir), fillvalue=fill_value):
+            for r, f in zip_longest(range(king_rank+r_dir, end_rank, r_dir),
+                                    range(king_file+f_dir, end_file, f_dir), fillvalue=fill_value):
                 if 0 <= r <= 7 and 0 <= f <= 7:
                     if (r, f) == (str_int, stf_int):
                         return False
                     piece = board[r][f]
                     if piece != 0:
                         if piece.colour == col and piece.name in ['rook', 'queen']:
-                        # if piece in (col + '_ro', col + '_qu'):
+                            # if piece in (col + '_ro', col + '_qu'):
                             return piece, (r, f)
                         return False
                 else:

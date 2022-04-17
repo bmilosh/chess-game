@@ -3,7 +3,12 @@ import unittest
 from model.board_for_testing import Board
 from model.checkmate_checker import CheckmateChecker
 from model.legal_moves_getter import LegalMovesGetter
-from model.pieces import *
+from model.pieces.bishop import Bishop
+from model.pieces.king import King
+from model.pieces.knight import Knight
+from model.pieces.pawn import Pawn
+from model.pieces.queen import Queen
+from model.pieces.rook import Rook
 
 
 class TestCheckmateChecker(unittest.TestCase):
@@ -29,7 +34,8 @@ class TestCheckmateChecker(unittest.TestCase):
         king = b.board[0][4]
 
         cmate_getter = CheckmateChecker(lmg)
-        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "white")
+        is_chkmate = cmate_getter.is_checkmate(
+            king, checking_pieces, b.white_active_pieces, kp, kuc, "white")
         self.assertEqual(True, is_chkmate)
 
         # Not a checkmate on black
@@ -40,7 +46,8 @@ class TestCheckmateChecker(unittest.TestCase):
         checking_pieces["white"].clear()
         kuc = [True, False]
         king = b.board[7][4]
-        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
+        is_chkmate = cmate_getter.is_checkmate(
+            king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
         self.assertEqual(False, is_chkmate)
 
         # Check on black by two pieces. Not a checkmate
@@ -48,5 +55,6 @@ class TestCheckmateChecker(unittest.TestCase):
         b.board[5][3] = Knight("white")
         b.board[5][3].rank, b.board[5][3].file = 5, 3
         checking_pieces["black"].append((b.board[5][3], (5, 3)))
-        is_chkmate = cmate_getter.is_checkmate(king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
+        is_chkmate = cmate_getter.is_checkmate(
+            king, checking_pieces, b.white_active_pieces, kp, kuc, "black")
         self.assertEqual(False, is_chkmate)

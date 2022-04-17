@@ -1,4 +1,4 @@
-from model.pieces import King
+from model.pieces.king import King
 from model.legal_moves_getter import LegalMovesGetter
 
 
@@ -12,8 +12,8 @@ class CheckmateChecker:
     def __init__(self, lmg: LegalMovesGetter) -> None:
         self.lmg = lmg
 
-    def is_checkmate(self, king: King, checking_pieces: dict, active_pieces: list, \
-            kings_positions: list[tuple], king_under_check, colour, flipped=False) -> bool:
+    def is_checkmate(self, king: King, checking_pieces: dict, active_pieces: list,
+                     kings_positions: list[tuple], king_under_check, colour, flipped=False) -> bool:
         if len(checking_pieces[colour]) > 1:
             if self.lmg.get_king_legal_moves(king, kings_positions, checking_pieces, king_under_check, flipped):
                 # There are legal ways for the king to get out of this check, hence it's not a checkmate.
@@ -27,18 +27,23 @@ class CheckmateChecker:
         for piece in active_pieces:
             name = piece.name
             if name == 'pawn':
-                legal_moves = self.lmg.get_pawn_legal_moves(piece, kings_positions, checking_pieces, flipped)
+                legal_moves = self.lmg.get_pawn_legal_moves(
+                    piece, kings_positions, checking_pieces, flipped)
             elif name == 'rook':
-                legal_moves = self.lmg.get_rook_legal_moves(piece, kings_positions, checking_pieces)
+                legal_moves = self.lmg.get_rook_legal_moves(
+                    piece, kings_positions, checking_pieces)
             elif name == 'bishop':
-                legal_moves = self.lmg.get_bishop_legal_moves(piece, kings_positions, checking_pieces)
+                legal_moves = self.lmg.get_bishop_legal_moves(
+                    piece, kings_positions, checking_pieces)
             elif name == 'knight':
-                legal_moves = self.lmg.get_knight_legal_moves(piece, kings_positions, checking_pieces)
+                legal_moves = self.lmg.get_knight_legal_moves(
+                    piece, kings_positions, checking_pieces)
             elif name == 'queen':
-                legal_moves = self.lmg.get_queen_legal_moves(piece, kings_positions, checking_pieces)
+                legal_moves = self.lmg.get_queen_legal_moves(
+                    piece, kings_positions, checking_pieces)
             else:
-                legal_moves = self.lmg.get_king_legal_moves(piece, kings_positions, checking_pieces, king_under_check, flipped)
+                legal_moves = self.lmg.get_king_legal_moves(
+                    piece, kings_positions, checking_pieces, king_under_check, flipped)
             if legal_moves:
                 return False
         return True
-

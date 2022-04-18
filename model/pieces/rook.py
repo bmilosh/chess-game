@@ -46,27 +46,38 @@ class Rook(Piece):
                     no_obstacles = False
         return no_obstacles
 
-    def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
+    def _check_opposing_king(self, kings_positions, king_position: tuple, king_under_check: list[bool], king_idx,
                              stf_int, str_int, opp_col, entry, board, checking_pieces):
-
-        king_rank, king_file = king_position
-        not_zero = 0
-        temp = board[str_int][stf_int]
-        board[str_int][stf_int] = entry
-        if str_int == king_rank or stf_int == king_file:
-            r_dir, f_dir, fill_value = (
-                1, 0, str_int) if str_int == king_rank else (0, 1, stf_int)
-
-            min1, max1 = min(str_int, king_rank), max(str_int, king_rank)
-            min2, max2 = min(stf_int, king_file), max(stf_int, king_file)
-            for r, f in zip_longest(range(min1, max1 + r_dir), range(min2, max2 + f_dir), fillvalue=fill_value):
-                if 0 <= r <= 7 and 0 <= f <= 7:
-                    if board[r][f] != 0:
-                        not_zero += 1
-        if not_zero == 1:
+        self.rank, self.file = str_int, stf_int
+        self.get_legal_moves(kings_positions, checking_pieces, board)
+        # king_rank, king_file = king_position
+        if king_position in self.legal_moves:
             king_under_check[king_idx] = True
-            checking_pieces[opp_col].append((entry, (str_int, stf_int)))
-        board[str_int][stf_int] = temp
+            checking_pieces[opp_col].append(
+                (entry, (str_int, stf_int)))
+        self.legal_moves = None
+
+    # def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
+    #                          stf_int, str_int, opp_col, entry, board, checking_pieces):
+
+    #     king_rank, king_file = king_position
+    #     not_zero = 0
+    #     temp = board[str_int][stf_int]
+    #     board[str_int][stf_int] = entry
+    #     if str_int == king_rank or stf_int == king_file:
+    #         r_dir, f_dir, fill_value = (
+    #             1, 0, str_int) if str_int == king_rank else (0, 1, stf_int)
+
+    #         min1, max1 = min(str_int, king_rank), max(str_int, king_rank)
+    #         min2, max2 = min(stf_int, king_file), max(stf_int, king_file)
+    #         for r, f in zip_longest(range(min1, max1 + r_dir), range(min2, max2 + f_dir), fillvalue=fill_value):
+    #             if 0 <= r <= 7 and 0 <= f <= 7:
+    #                 if board[r][f] != 0:
+    #                     not_zero += 1
+    #     if not_zero == 1:
+    #         king_under_check[king_idx] = True
+    #         checking_pieces[opp_col].append((entry, (str_int, stf_int)))
+    #     board[str_int][stf_int] = temp
 
     def move(self, square_from: str, square_to: str, kings_positions: list[tuple],
              king_under_check: list[bool],  board: list[list], sqv: SquareValidator,
@@ -103,8 +114,8 @@ class Rook(Piece):
         # # Invalid rook movement
         # else:
         #     move_valid = False
-        if self.legal_moves is None:
-            self.get_legal_moves(kings_positions, checking_pieces, board)
+        # if self.legal_moves is None:
+        self.get_legal_moves(kings_positions, checking_pieces, board)
         move_valid = (str_int, stf_int) in self.legal_moves
         # print(f"rook legal moves: {self.legal_moves=}")
         # print(f"Valid rook move = {move_valid}")
@@ -123,12 +134,12 @@ class Rook(Piece):
             checking_pieces[col].clear()
 
             # Try if this is a checking move on opponent's king
-            self._check_opposing_king(kings_positions[king_idx ^ 1], king_under_check,
+            self._check_opposing_king(kings_positions, kings_positions[king_idx ^ 1], king_under_check,
                                       king_idx ^ 1, stf_int, str_int, opp_col, board[sfr_int][sff_int], board, checking_pieces)
 
             # Queen might be checking from the same diagonal as the king
             if queen_move is not None:
-                queen_move._check_opposing_king(kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
+                queen_move._check_opposing_king(kings_positions, kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
                                                 stf_int, str_int, opp_col, board[sfr_int][sff_int], board, checking_pieces)
 
             # Try if a discovered check is possible on opponent's king

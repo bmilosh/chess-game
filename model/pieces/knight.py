@@ -22,16 +22,6 @@ class Knight(Piece):
         self.name = 'knight'
         self.legal_moves = None
 
-    # def get_square_occupant(self, board, str_int, stf_int, opp_col):
-    #     try:
-    #         occ = board[str_int][stf_int]
-    #     except IndexError:
-    #         raise
-    #     else:
-    #         if occ:
-    #             return 1 if occ.colour == opp_col else -1
-    #         return 0
-
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict, board, flipped=False, king_under_check=None):
         self.legal_moves = []
         opp_col = "white" if self.colour == "black" else "black"
@@ -66,9 +56,9 @@ class Knight(Piece):
              king_under_check: list[bool], board: list[list], sqv: SquareValidator,
              flipped: bool = False, checking_pieces=None):
         square_from, square_to = square_from.strip(), square_to.strip()
-        file_diff, rank_diff, square_to_occupant = sqv.check_squares(
-            square_from, square_to, board)
-        file_diff, rank_diff = abs(file_diff), abs(rank_diff)
+        # file_diff, rank_diff, square_to_occupant = sqv.check_squares(
+        #     square_from, square_to, board)
+        # file_diff, rank_diff = abs(file_diff), abs(rank_diff)
         sff_int, sfr_int = convert_to_int(square_from)
         stf_int, str_int = convert_to_int(square_to)
 
@@ -81,18 +71,12 @@ class Knight(Piece):
         #     move_valid = False
         # else:
         #     move_valid = True
-        if self.legal_moves is None:
-            self.get_legal_moves(kings_positions, checking_pieces, board)
-        # self.get_legal_moves(kings_positions, checking_pieces, board, square_to_occupant)
-        # print(self.legal_moves)
+        # if self.legal_moves is None:
+        self.get_legal_moves(kings_positions, checking_pieces, board)
         move_valid = (str_int, stf_int) in self.legal_moves
-        # print(move_valid, (str_int, stf_int))
         self.legal_moves = None
         if move_valid:
             opp_col = 'black' if col == 'white' else 'white'
-            # if self.dc.verify_own_king(kings_positions[king_idx],
-            #                            opp_col, sff_int, sfr_int, stf_int, str_int, board, checking_pieces):
-            #     return False
 
             # We've unchecked our king by the previous check.
             # Update the king_under_check status as well as

@@ -108,9 +108,9 @@ class Pawn(Piece):
         #     move_valid = self._check(
         #         file_diff, -rank_diff, square_to_occupant, square_from, square_to, 'black', board)
 
-        if self.legal_moves is None or flipped:
-            self.get_legal_moves(
-                kings_positions, checking_pieces, board, flipped)
+        # if self.legal_moves is None or flipped:
+        self.get_legal_moves(
+            kings_positions, checking_pieces, board, flipped)
         move_valid = (str_int, stf_int) in self.legal_moves
         self.legal_moves = None
 

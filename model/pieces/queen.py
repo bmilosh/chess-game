@@ -47,8 +47,8 @@ class Queen(Piece):
             return False
 
         stf_int, str_int = convert_to_int(square_to)
-        if self.legal_moves is None or flipped:
-            self.get_legal_moves(kings_positions, checking_pieces, board)
+        # if self.legal_moves is None or flipped:
+        self.get_legal_moves(kings_positions, checking_pieces, board)
         move_valid = (str_int, stf_int) in self.legal_moves
         # print(f"queen legal moves: {self.legal_moves}")
         # print(f"{move_valid=} {str_int=} {stf_int=}")
@@ -57,9 +57,9 @@ class Queen(Piece):
             # print(f"checking pieces from queen: {checking_pieces=} (before checking)")
             king_under_check[king_idx] = False
             checking_pieces[self.colour].clear()
-            self.bishop._check_opposing_king(kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
+            self.bishop._check_opposing_king(kings_positions, kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
                                              stf_int, str_int, opp_col, self, board, checking_pieces)
-            self.rook._check_opposing_king(kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
+            self.rook._check_opposing_king(kings_positions, kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
                                            stf_int, str_int, opp_col, self, board, checking_pieces)  # board[self.rank][self.file]
             # print(f"checking pieces from queen: {checking_pieces=} (after checking)")
             # print()

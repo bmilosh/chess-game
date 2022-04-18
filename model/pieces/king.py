@@ -3,7 +3,6 @@ from model.discovered_checks import DiscoveredChecks
 from model.pieces.piece_interface import Piece
 from model.pieces.bishop import Bishop
 from model.pieces.rook import Rook
-from model.pieces_old import Pawn
 from model.pieces.knight import Knight
 from model.pieces.queen import Queen
 from model.pieces.pawn import Pawn
@@ -13,6 +12,7 @@ from model.square_validator import SquareValidator
 
 def convert_to_int(square: str):
     return ord(square[0]) - 97, int(square[1]) - 1
+
 
 class King(Piece):
     """
@@ -30,20 +30,21 @@ class King(Piece):
         self.can_castle = True
         self.legal_moves = None
 
-    # def get_legal_moves(self):
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict,
-                             board, flipped=False, king_under_check=None) -> list:
+                        board, flipped=False, king_under_check=None) -> list:
         def check(r, f):
             if rank + r not in range(8) or file + f not in range(8):
                 return
-            occ = self.sog.get_square_occupant(board,  rank + r, file + f, opp_col)
+            occ = self.sog.get_square_occupant(
+                board,  rank + r, file + f, opp_col)
             if occ == -1 or (not r and not f):
                 return
-            if self._is_safe(file+f, rank+r, col, board, kings_positions, flipped):
-                if f not in [2, -2] or (not king_under_check[idx] and\
-                        self.validate_castling(rank, file, file+f, rank+r, king_under_check,
-                                        col, idx, kings_positions, board, flipped, checking_pieces)):
-                    self.legal_moves.append((rank + r, file + f))
+            if not self._is_safe(file+f, rank+r, col, board, kings_positions, flipped):
+                return
+            if f not in [2, -2] or (not king_under_check[idx] and
+                                    self.validate_castling(rank, file, file+f, rank+r, king_under_check,
+                                    col, idx, kings_positions, board, flipped, checking_pieces)):
+                self.legal_moves.append((rank + r, file + f))
         self.legal_moves = []
         col = self.colour
         opp_col, idx = ("white", 0) if self.colour == "black" else ("black", 1)
@@ -149,10 +150,11 @@ class King(Piece):
             self._king_safe_from_queen(stf_int, str_int, king_colour, board)
 
     def validate_castling(self, sfr_int, sff_int, stf_int, str_int, king_under_check,
-                    king_colour, king_idx, kings_positions, board, flipped, checking_pieces):
-        
+                          king_colour, king_idx, kings_positions, board, flipped, checking_pieces):
+
         opp_col = 'white' if king_colour == 'black' else 'black'
         # print(f"castling privs: {self.can_castle_kingside=} {self.can_castle_queenside=}, {stf_int=}, {sff_int=}")
+
         def check(end, f_dir):
             # print(f"{end=}, {f_dir=}, {stf_int=}, {str_int=}, {i=}, {board[str_int][i]=}, {sff_int=}")
             j = 0
@@ -198,122 +200,47 @@ class King(Piece):
                 rook_square = (7, 5)
         if self.can_castle and chk:
             # print(f"should castle")
-            Rook()._check_opposing_king(kings_positions[king_idx^1], king_under_check, king_idx^1, 
-                rook_square[1], rook_square[0], opp_col, Rook(king_colour), board, checking_pieces)
+            Rook()._check_opposing_king(kings_positions, kings_positions[king_idx ^ 1], king_under_check, king_idx ^ 1,
+                                        rook_square[1], rook_square[0], opp_col, Rook(king_colour), board, checking_pieces)
         return self.can_castle and chk
 
-
-    def _move_is_valid(self, rank_diff, file_diff, square_to_occupant, sfr_int, sff_int,
-                       stf_int, str_int, king_colour, board, kings_positions,
-                       king_under_check, king_idx, flipped, checking_pieces):
-        if square_to_occupant == -1 or (not file_diff and not rank_diff) or file_diff > 2 or abs(rank_diff) > 1:
-            return False
-        elif file_diff == 2:
-            return not king_under_check[king_idx] and \
-                 self.validate_castling(sfr_int, sff_int, stf_int, str_int, king_under_check,
-                        king_colour, king_idx, kings_positions, board, flipped, checking_pieces)
-        else:
-            # print("checking king safety")
-            temp = board[sfr_int][sff_int]
-            board[sfr_int][sff_int] = 0
-            move_valid = self._is_safe(
-                stf_int, str_int, king_colour, board, kings_positions, flipped)
-            board[sfr_int][sff_int] = temp
-            return move_valid
-
     def move(self, square_from: str, square_to: str, kings_positions: list[tuple],
-             king_under_check: list[bool], board: list[list], sqv: SquareValidator, 
-             flipped: bool = False, checking_pieces=None):
+             king_under_check: list[bool], board: list[list], sqv: SquareValidator,
+             flipped: bool = False, checking_pieces=None, opp_active_pieces: list = None):
+
         square_from, square_to = square_from.strip(), square_to.strip()
-        # file_diff, rank_diff, square_to_occupant = sqv.check_squares(
-        #     square_from, square_to, board)
+
         sff_int, sfr_int = convert_to_int(square_from)
         stf_int, str_int = convert_to_int(square_to)
-        # king_colour = board[sfr_int][sff_int].colour
-        king_idx, opp_col = (1, 'black') if self.colour == 'white' else (0, 'white')
-        # print(board[str_int][stf_int], square_to_occupant)
-        # if hasattr(board[str_int][stf_int], 'colour'):
-        #     print(board[str_int][stf_int].colour)
+
+        king_idx, opp_col = (
+            1, 'black') if self.colour == 'white' else (0, 'white')
 
         if self.legal_moves is None or flipped:
-            self.get_legal_moves(kings_positions, checking_pieces, board, flipped, king_under_check)
+            self.get_legal_moves(
+                kings_positions, checking_pieces, board, flipped, king_under_check)
         move_valid = (str_int, stf_int) in self.legal_moves
         self.legal_moves = None
 
-        # move_valid = self._move_is_valid(rank_diff, file_diff, square_to_occupant, sfr_int, sff_int,
-        #                                  stf_int, str_int, king_colour, board, kings_positions,
-        #                                  king_under_check, king_idx, flipped, checking_pieces)
         if move_valid:
-            # opp_col = 'black' if king_colour == 'white' else 'white'
-            if self.uncheck_king(checking_pieces[self.colour], stf_int, str_int, board):
-                king_under_check[king_idx] = False
-                other_dcb, other_dcr = self.dc.verify_opposing_king(kings_positions[king_idx ^ 1],  self.colour, sff_int,
-                                                                    sfr_int, stf_int, str_int, board)
-                if other_dcb:
-                    king_under_check[king_idx ^ 1] = True
-                    checking_pieces[opp_col].append(other_dcb)
-                elif other_dcr:
-                    king_under_check[king_idx ^ 1] = True
-                    checking_pieces[opp_col].append(other_dcr)
+            # Move is valid means the king is now in a safe square.
+            king_under_check[king_idx] = False
+            checking_pieces[self.colour].clear()
 
-                # Update rank and file
-                self.rank, self.file = str_int, stf_int
+            # Check if this move leads to a discovered check on the other king.
+            other_dcb, other_dcr = self.dc.verify_opposing_king(kings_positions[king_idx ^ 1],  self.colour, sff_int,
+                                                                sfr_int, stf_int, str_int, board)
+            if other_dcb:
+                king_under_check[king_idx ^ 1] = True
+                checking_pieces[opp_col].append(other_dcb)
+            elif other_dcr:
+                king_under_check[king_idx ^ 1] = True
+                checking_pieces[opp_col].append(other_dcr)
 
-            else:
-                return False
+            # Update rank and file
+            self.rank, self.file = str_int, stf_int
+
         return move_valid
-
-    def _uncheck_from_pawn(self, pos, stf_int, str_int):
-        if (abs(str_int-pos[0]), abs(stf_int-pos[1])) != (1, 1):
-            return 1
-        return 0
-
-    def _uncheck_from_knight(self, pos, stf_int, str_int):
-        if (abs(str_int-pos[0]), abs(stf_int-pos[1])) not in [(1, 2), (2, 1)]:
-            return 1
-        return 0
-
-    def _uncheck_from_rook(self, pos, stf_int, str_int):
-        if (abs(str_int-pos[0]) != 0 and abs(stf_int-pos[1]) != 0) or \
-                (abs(str_int-pos[0]) == 0 and abs(stf_int-pos[1]) == 0):
-            return 1
-        return 0
-
-    def _uncheck_from_bishop(self, pos, stf_int, str_int):
-        if abs(str_int-pos[0]) != abs(stf_int-pos[1]) or pos == (str_int, stf_int):
-            return 1
-        return 0
-
-    def _uncheck_from_queen(self, pos, stf_int, str_int, board):
-        rank_diff = abs(str_int-pos[0])
-        file_diff = abs(stf_int-pos[1])
-        next_rank = str_int-1 if str_int > pos[0] else str_int+1
-        next_file = stf_int-1 if stf_int > pos[1] else stf_int+1
-        if ((file_diff == rank_diff and pos != (str_int, stf_int)) or
-                (0 == file_diff != rank_diff and ((next_rank, stf_int) == pos or board[next_rank][stf_int] == 0)) or
-                (0 == rank_diff != file_diff and ((str_int, next_file) == pos or board[str_int][next_file] == 0))):
-            return 0
-        return 1
-
-    def uncheck_king(self, chk_piece: list, stf_int, str_int, board):
-        c = 0
-        for piece_name, pos in chk_piece:
-            if piece_name.name == 'pawn':
-                c += self._uncheck_from_pawn(pos, stf_int, str_int)
-            elif piece_name.name == 'knight':
-                c += self._uncheck_from_knight(pos, stf_int, str_int)
-            elif piece_name.name == 'rook':
-                c += self._uncheck_from_rook(pos, stf_int, str_int)
-            elif piece_name.name == 'bishop':
-                c += self._uncheck_from_bishop(pos, stf_int, str_int)
-            elif piece_name.name == 'queen':
-                c += self._uncheck_from_queen(pos, stf_int, str_int, board)
-            else:
-                raise ValueError(f"Checking with unknown piece: {piece_name=}")
-        if c == len(chk_piece):
-            chk_piece.clear()
-            return True
-        return False
 
     def __repr__(self) -> str:
         return f"{self.colour} {self.name}"

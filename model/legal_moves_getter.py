@@ -1,6 +1,10 @@
 from model.discovered_checks import DiscoveredChecks
-from model.pieces_old import *
-
+from model.pieces.bishop import Bishop
+from model.pieces.rook import Rook
+from model.pieces.knight import Knight
+from model.pieces.queen import Queen
+from model.pieces.pawn import Pawn
+from model.pieces.king import King
 
 class LegalMovesGetter:
     """

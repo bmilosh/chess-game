@@ -523,21 +523,21 @@ class TestMovements(unittest.TestCase):
 
         king.rank, king.file = 0, 1
         move = king.move('b1', 'a3', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(0, king.rank)
         self.assertEqual(1, king.file)
 
         king.rank, king.file = 0, 4
         move = king.move('e1', 'f2', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(True, move)
         self.assertEqual(1, king.rank)
         self.assertEqual(5, king.file)
 
         king.rank, king.file = 7, 7
         move = king.move('h8', 'h5', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(7, king.rank)
         self.assertEqual(7, king.file)
@@ -545,55 +545,66 @@ class TestMovements(unittest.TestCase):
         b.board[6][4] = Knight("white")  # e6
         king.rank, king.file = 6, 2
         move = king.move('c7', 'c6', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(6, king.rank)
         self.assertEqual(2, king.file)
 
         # knight-protected squares
         b.board[3][6] = Knight("white")  # g4
+        b.board[3][6].rank, b.board[3][6].file = 3, 6
+        b.white_active_pieces.append(b.board[3][6])
         b.board[5][4] = King("black")  # e6
+        b.board[5][4].rank, b.board[5][4].file = 5, 4
         king.rank, king.file = 5, 4
-        move = king.move('e6', 'f6', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+        move = b.board[5][4].move('e6', 'f6', kp, kuc, b.board, sqv,
+                         checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(5, king.rank)
         self.assertEqual(4, king.file)
 
         # queen-, bishop-, pawn-, king-, rook-protected squares
         b.board[2][2] = Queen("black")  # c3
+        b.board[2][2].rank, b.board[2][2].file = 2, 2
+        b.board[0][6] = king
         king.rank, king.file = 0, 6
-        move = king.move('g1', 'h2', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+        move = b.board[0][6].move('g1', 'h2', kp, kuc, b.board, sqv,
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(0, king.rank)
         self.assertEqual(6, king.file)
 
         king.rank, king.file, king.colour = 7, 6, "white"
+        b.board[7][6] = king
         move = king.move('g8', 'h7', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(7, king.rank)
         self.assertEqual(6, king.file)
 
         king.rank, king.file = 6, 2
-        move = king.move('c7', 'c8', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+        b.board[6][2] = king
+        # print(b.black_active_pieces)
+        # print(*b.board, sep='\n')
+        move = b.board[6][2].move('c7', 'c8', kp, kuc, b.board, sqv,
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(6, king.rank)
         self.assertEqual(2, king.file)
 
         b.board[3][5] = King("black")  # f4
-        king.rank, king.file = 3, 5
-        move = king.move('f4', 'g5', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+        b.board[3][5].rank, b.board[3][5].file = 3, 5
+        # king.rank, king.file = 3, 5
+        # print(*b.board, sep='\n')
+        move = b.board[3][5].move('f4', 'g5', kp, kuc, b.board, sqv,
+                         checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(True, move)
-        self.assertEqual(4, king.rank)
-        self.assertEqual(6, king.file)
+        self.assertEqual(4, b.board[3][5].rank)
+        self.assertEqual(6, b.board[3][5].file)
 
         king.rank, king.file = 3, 5
         move = king.move('f4', 'g4', kp, kuc, b.board, sqv,
-                         checking_pieces=checking_pieces)
+                         checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
         self.assertEqual(3, king.rank)
         self.assertEqual(5, king.file)
@@ -606,56 +617,57 @@ class TestCastling(unittest.TestCase):
         sqv = SquareValidator()
         kp = [(7, 4), (0, 4)]
         kuc = [False, False]
-        b.board[6] = b.board[1] = [0] * 8
+        b.board[6] = [0] * 8
+        b.board[1] = [0] * 8
         checking_pieces = {'black': [], 'white': []}
 
         # White
         king.can_castle = False
         move = b.board[0][4].move('e1', 'g1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
 
         b.board[0][5] = 0
         b.board[0][6] = 0
         b.board[0][4].can_castle = False
         move = b.board[0][4].move('e1', 'g1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         # assume one of them has moved previously
         self.assertEqual(False, move)
 
         b.board[0][7].can_castle = False
         b.board[0][4].can_castle = True
         move = b.board[0][4].move('e1', 'g1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
 
         b.board[0][7].can_castle = True
         move = b.board[0][4].move('e1', 'g1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(True, move)
         # self.assertEqual(True, isinstance(b.board[0][5], Rook))
 
         # Black
         b.board[7][4].can_castle = False
         move = b.board[7][4].move('e8', 'g8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
 
         b.board[7][5] = 0
         b.board[7][6] = 0
         move = b.board[7][4].move('e8', 'g8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
 
         b.board[7][7].can_castle = False
         b.board[7][4].can_castle = True
         move = b.board[7][4].move('e8', 'g8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
 
         b.board[7][7].can_castle = True
         move = b.board[7][4].move('e8', 'g8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(True, move)
 
     def test_should_check_castling_queenside(self):
@@ -670,54 +682,58 @@ class TestCastling(unittest.TestCase):
         # White
         b.board[0][4].can_castle = False
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)
 
         b.board[0][1] = 0
         b.board[0][2] = 0
         b.board[0][3] = 0
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         # assume one of them has moved previously
         self.assertEqual(False, move)
 
         b.board[0][4].can_castle = True
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         # can't castle cos the queen threatens one of the squares
         self.assertEqual(False, move)
 
         kuc[1] = True
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)  # can't castle cos the king is in check
 
         kuc[1] = False
         b.board[7][3] = 0
         b.board[0][0].can_castle = False
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(False, move)  # can't castle cos the rook has moved
 
         b.board[0][0].can_castle = True
+        b.black_active_pieces = [p for p in b.black_active_pieces if p.name != 'queen']
         move = b.board[0][4].move('e1', 'c1', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.black_active_pieces)
         self.assertEqual(True, move)
 
         # Black
         b.board[7][4].can_castle = False
         move = b.board[7][4].move('e8', 'c8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
 
         b.board[7][1] = 0
         b.board[7][2] = 0
         b.board[7][3] = 0
         move = b.board[7][4].move('e8', 'c8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(False, move)
 
         b.board[7][4].can_castle = True
+        b.board[7][0].can_castle = True
+        b.board[0][3] = 0
+        b.white_active_pieces = [p for p in b.white_active_pieces if p.name != 'queen']
         move = b.board[7][4].move('e8', 'c8', kp, kuc, b.board, sqv,
-                                  checking_pieces=checking_pieces)
+                                  checking_pieces=checking_pieces, opp_active_pieces=b.white_active_pieces)
         self.assertEqual(True, move)

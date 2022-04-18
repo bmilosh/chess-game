@@ -111,8 +111,8 @@ class Board(tk.Frame):
             #     self.board[r][f].can_castle = True
         else:
             self._add_labels()
-        self.lmg_getter = LegalMovesGetter(self.board)
-        self.mate_checker = CheckmateChecker(self.lmg_getter)
+        # self.lmg_getter = LegalMovesGetter(self.board)
+        self.mate_checker = CheckmateChecker()
 
     def reconfigure_labels(self):
         for r in range(8):
@@ -128,12 +128,32 @@ class Board(tk.Frame):
                     bg=col, image=self.img_dict[img_key])
 
     def verify_move(self, board_entry: str, square_from: str, square_to: str):
+        if isinstance(board_entry, King):
+            if board_entry.colour == "white":
+                return board_entry.move(square_from, square_to, self.kings_positions,
+                                        self.king_under_check, self.board, self.sqv,
+                                        flipped=self.flipped, checking_pieces=self.checking_pieces,\
+                                        opp_active_pieces=self.black_active_pieces)
+            else:
+                return board_entry.move(square_from, square_to, self.kings_positions,
+                                        self.king_under_check, self.board, self.sqv,
+                                        flipped=self.flipped, checking_pieces=self.checking_pieces,\
+                                        opp_active_pieces=self.white_active_pieces)
         return board_entry.move(square_from, square_to, self.kings_positions,
                                 self.king_under_check, self.board, self.sqv,
                                 flipped=self.flipped, checking_pieces=self.checking_pieces)
 
     def get_legal_moves(self, board_entry):
-        self.legal_moves = board_entry.get_legal_moves(self.kings_positions, self.checking_pieces,
+        if isinstance(board_entry, King):
+            if board_entry.colour == "white":
+                # print(f"{self.black_active_pieces = }")
+                self.legal_moves = board_entry.get_legal_moves(self.kings_positions, self.checking_pieces,
+                                                self.board, self.flipped, self.king_under_check, self.black_active_pieces)
+            else:
+                self.legal_moves = board_entry.get_legal_moves(self.kings_positions, self.checking_pieces,
+                                                self.board, self.flipped, self.king_under_check, self.white_active_pieces)
+        else:
+            self.legal_moves = board_entry.get_legal_moves(self.kings_positions, self.checking_pieces,
                                                        self.board, self.flipped, self.king_under_check)
 
         # else:

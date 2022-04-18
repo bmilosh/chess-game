@@ -10,6 +10,11 @@ from model.pieces.queen import Queen
 from model.pieces.rook import Rook
 
 
+#########################################################
+## These tests are no longer needed. Should be removed ##
+#########################################################
+
+
 class TestLegalMovesGetter(unittest.TestCase):
     """
     1 - enemy
@@ -161,67 +166,67 @@ class TestLegalMovesGetter(unittest.TestCase):
             b.board[7][6], kp, checking_pieces)
         self.assertEqual([], lgm)
 
-    def test_should_get_legal_king_moves(self):
-        b = Board()
-        lgm_getter = LegalMovesGetter(b.board)
-        kp = [(7, 4), (0, 4)]
-        kuc = [False, False]
-        checking_pieces = {'black': [], 'white': []}
+    # def test_should_get_legal_king_moves(self):
+    #     b = Board()
+    #     lgm_getter = LegalMovesGetter(b.board)
+    #     kp = [(7, 4), (0, 4)]
+    #     kuc = [False, False]
+    #     checking_pieces = {'black': [], 'white': []}
 
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[0][4], kp, checking_pieces, kuc)
-        self.assertEqual([], lgm)
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[0][4], kp, checking_pieces, kuc)
+    #     self.assertEqual([], lgm)
 
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[7][4], kp, checking_pieces, kuc)
-        self.assertEqual([], lgm)
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[7][4], kp, checking_pieces, kuc)
+    #     self.assertEqual([], lgm)
 
-        # Castling black king
-        b.board[7][6] = b.board[7][5] = 0
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[7][4], kp, checking_pieces, kuc)
-        self.assertEqual({(7, 5), (7, 6)}, set(lgm))
+    #     # Castling black king
+    #     b.board[7][6] = b.board[7][5] = 0
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[7][4], kp, checking_pieces, kuc)
+    #     self.assertEqual({(7, 5), (7, 6)}, set(lgm))
 
-        # Castling white king - kingside
-        b.board[0][6] = b.board[0][5] = 0
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[0][4], kp, checking_pieces, kuc)
-        self.assertEqual({(0, 5), (0, 6)}, set(lgm))
+    #     # Castling white king - kingside
+    #     b.board[0][6] = b.board[0][5] = 0
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[0][4], kp, checking_pieces, kuc)
+    #     self.assertEqual({(0, 5), (0, 6)}, set(lgm))
 
-        # Castling white king - kingside or queenside
-        b.board[0][1] = b.board[0][2] = b.board[0][3] = 0
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[0][4], kp, checking_pieces, kuc)
-        self.assertEqual({(0, 5), (0, 6), (0, 3), (0, 2)}, set(lgm))
+    #     # Castling white king - kingside or queenside
+    #     b.board[0][1] = b.board[0][2] = b.board[0][3] = 0
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[0][4], kp, checking_pieces, kuc)
+    #     self.assertEqual({(0, 5), (0, 6), (0, 3), (0, 2)}, set(lgm))
 
-        b.board[3][2] = King("white")
-        kp[1] = (3, 2)
-        b.board[3][2].rank, b.board[3][2].file = 3, 2
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[3][2], kp, checking_pieces, kuc)
-        true_moves = {(4, 2), (4, 3), (3, 3), (2, 3),
-                      (2, 2), (2, 1), (3, 1), (4, 1)}
-        self.assertEqual(true_moves, set(lgm))
+    #     b.board[3][2] = King("white")
+    #     kp[1] = (3, 2)
+    #     b.board[3][2].rank, b.board[3][2].file = 3, 2
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[3][2], kp, checking_pieces, kuc)
+    #     true_moves = {(4, 2), (4, 3), (3, 3), (2, 3),
+    #                   (2, 2), (2, 1), (3, 1), (4, 1)}
+    #     self.assertEqual(true_moves, set(lgm))
 
-        b.board[5][2] = King("black")
-        kp[0] = (5, 2)
-        b.board[5][2].rank, b.board[5][2].file = 5, 2
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[5][2], kp, checking_pieces, kuc)
-        true_moves = {(5, 1), (5, 3)}
-        self.assertEqual(true_moves, set(lgm))
+    #     b.board[5][2] = King("black")
+    #     kp[0] = (5, 2)
+    #     b.board[5][2].rank, b.board[5][2].file = 5, 2
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[5][2], kp, checking_pieces, kuc)
+    #     true_moves = {(5, 1), (5, 3)}
+    #     self.assertEqual(true_moves, set(lgm))
 
-        b.board[4][7] = King("white")
-        b.board[4][7].rank, b.board[4][7].file = 4, 7
-        # Open up the black queen to take away some squares from this king
-        b.board[6][4] = 0
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[4][7], kp, checking_pieces, kuc)
-        # There are black pawns on g7 and h7, leaving only one square for the king
-        self.assertEqual([(3, 6)], lgm)
+    #     b.board[4][7] = King("white")
+    #     b.board[4][7].rank, b.board[4][7].file = 4, 7
+    #     # Open up the black queen to take away some squares from this king
+    #     b.board[6][4] = 0
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[4][7], kp, checking_pieces, kuc)
+    #     # There are black pawns on g7 and h7, leaving only one square for the king
+    #     self.assertEqual([(3, 6)], lgm)
 
-        # Open up the light bishop to take away the last available square from this king
-        b.board[6][3] = 0
-        lgm = lgm_getter.get_king_legal_moves(
-            b.board[4][7], kp, checking_pieces, kuc)
-        self.assertEqual([], lgm)
+    #     # Open up the light bishop to take away the last available square from this king
+    #     b.board[6][3] = 0
+    #     lgm = lgm_getter.get_king_legal_moves(
+    #         b.board[4][7], kp, checking_pieces, kuc)
+    #     self.assertEqual([], lgm)

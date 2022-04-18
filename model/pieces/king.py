@@ -31,33 +31,80 @@ class King(Piece):
         self.legal_moves = None
 
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict,
-                        board, flipped=False, king_under_check=None) -> list:
-        def check(r, f):
-            if rank + r not in range(8) or file + f not in range(8):
-                return
-            occ = self.sog.get_square_occupant(
-                board,  rank + r, file + f, opp_col)
-            if occ == -1 or (not r and not f):
-                return
-            if not self._is_safe(file+f, rank+r, col, board, kings_positions, flipped):
-                return
-            if f not in [2, -2] or (not king_under_check[idx] and
-                                    self.validate_castling(rank, file, file+f, rank+r, king_under_check,
-                                    col, idx, kings_positions, board, flipped, checking_pieces)):
-                self.legal_moves.append((rank + r, file + f))
-        self.legal_moves = []
-        col = self.colour
-        opp_col, idx = ("white", 0) if self.colour == "black" else ("black", 1)
-        rank, file = self.rank, self.file
+                        board, flipped=False, king_under_check=None, opp_active_pieces: list[Piece]=None) -> list:
+        bad_squares = set()
+        idx, opp_col = (0, "white") if self.colour == "black" else (1, "black")
+        # print(f"from king: {opp_active_pieces = }")
         rng = list(range(-1, 2))
-        temp = board[rank][file]
-        board[rank][file] = 0
-        for r, f in [(i, j) for i in rng for j in rng]:
-            check(r, f)
-        check(0, 2)
-        check(0, -2)
-        board[rank][file] = temp
+        pos_squares = set()
+        temp_dict = {}
+        for i, j in [(i, j) for i in rng for j in rng]:
+            if self.rank+i in range(8) and self.file+j in range(8) and not (i == 0 and j == 0) and \
+                    self.sog.get_square_occupant(board, self.rank+i, self.file+j, opp_col) != -1:
+                pos_squares.add((self.rank+i, self.file+j))
+                temp_dict[(self.rank+i, self.file+j)] = board[self.rank+i][self.file+j]
+                board[self.rank+i][self.file+j] = 0
+
+        for threat in opp_active_pieces:
+            if threat.colour == self.colour:
+                raise ValueError(f"Wrong colour active pieces sent. \n{self}, {opp_active_pieces = }")
+            if isinstance(threat, King) or isinstance(threat, Pawn):
+                continue
+            bad_squares |= set(threat.get_legal_moves(kings_positions, checking_pieces, board))
+
+        # pos_squares = set((self.rank+i, self.file+j) for i in rng for j in rng if self.rank+i in range(8) and self.file+j in range(8) and i+j != 0)
+        good_squares = pos_squares - bad_squares
+        temp = set()
+        for r, f in good_squares:
+            if not self._king_safe_from_king(f, r, kings_positions, self.colour) or\
+                not self._king_safe_from_pawn(f, r, self.colour, board, flipped):
+                temp.add((r, f))
+                bad_squares.add((r, f))
+        good_squares -= temp
+        def check_castling(f):
+            if self.validate_castling(self.rank, self.file, self.file+f, self.rank, king_under_check, self.colour,\
+                    idx, kings_positions, board, flipped, checking_pieces, bad_squares) and \
+                    (self.rank, self.file+f) not in bad_squares:
+                good_squares.add((self.rank, self.file+f))
+        check_castling(2)
+        check_castling(-2)
+        # print(f"good squares are: {good_squares = }")
+        self.legal_moves = list(good_squares)
+        # print(f"legal moves: {self.legal_moves = }")
+        for pair in temp_dict:
+            r, f = pair
+            board[r][f] = temp_dict[pair]
+        temp_dict.clear()
         return self.legal_moves
+
+    # def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict,
+    #                     board, flipped=False, king_under_check=None) -> list:
+    #     def check(r, f):
+    #         if rank + r not in range(8) or file + f not in range(8):
+    #             return
+    #         occ = self.sog.get_square_occupant(
+    #             board,  rank + r, file + f, opp_col)
+    #         if occ == -1 or (not r and not f):
+    #             return
+    #         if not self._is_safe(file+f, rank+r, self.colour, board, kings_positions, flipped):
+    #             return
+    #         if f not in [2, -2] or (not king_under_check[idx] and
+    #                                 self.validate_castling(rank, file, file+f, rank+r, king_under_check,
+    #                                 self.colour, idx, kings_positions, board, flipped, checking_pieces)):
+    #             self.legal_moves.append((rank + r, file + f))
+
+    #     self.legal_moves = []
+    #     opp_col, idx = ("white", 0) if self.colour == "black" else ("black", 1)
+    #     rank, file = self.rank, self.file
+    #     rng = list(range(-1, 2))
+    #     temp = board[rank][file]
+    #     board[rank][file] = 0
+    #     for r, f in [(i, j) for i in rng for j in rng]:
+    #         check(r, f)
+    #     check(0, 2)
+    #     check(0, -2)
+    #     board[rank][file] = temp
+    #     return self.legal_moves
 
     def _king_safe_from_pawn(self, stf_int, str_int, king_colour, board, flipped: bool):
         def check_square(r_dir, opp_colour):
@@ -84,73 +131,73 @@ class King(Piece):
         return (abs(kings_positions[opp_king][0]-str_int) > 1 or
                 abs(kings_positions[opp_king][1]-stf_int) > 1)
 
-    def _king_safe_from_knight(self, stf_int, str_int, king_colour, board):
-        for pair in [((r1, f1), (f1, r1)) for r1 in [-1, 1] for f1 in [-2, 2]]:
-            for r, f in pair:
-                r_diff, f_diff = str_int-r, stf_int-f
-                if r_diff not in range(8) or f_diff not in range(8):
-                    continue
-                # if 0 <= r_diff <= 7 and 0 <= f_diff <= 7:
-                p = board[r_diff][f_diff]
-                if ((king_colour == 'white' and isinstance(p, Knight) and p.colour == 'black') or
-                        (king_colour == 'black' and isinstance(p, Knight) and p.colour == 'white')):
-                    return False
-        return True
+    # def _king_safe_from_knight(self, stf_int, str_int, king_colour, board):
+    #     for pair in [((r1, f1), (f1, r1)) for r1 in [-1, 1] for f1 in [-2, 2]]:
+    #         for r, f in pair:
+    #             r_diff, f_diff = str_int-r, stf_int-f
+    #             if r_diff not in range(8) or f_diff not in range(8):
+    #                 continue
+    #             # if 0 <= r_diff <= 7 and 0 <= f_diff <= 7:
+    #             p = board[r_diff][f_diff]
+    #             if ((king_colour == 'white' and isinstance(p, Knight) and p.colour == 'black') or
+    #                     (king_colour == 'black' and isinstance(p, Knight) and p.colour == 'white')):
+    #                 return False
+    #     return True
 
-    def __check(self, str_int, stf_int, board, threat, opp_col, k=1):
-        """
-        Utility function for the bishop and rook safety checks.
-        k is set to 1 for the bishop. However, in order to be 
-        able to check same file and rank for the rook, we pass
-        it in as 0.
-        """
-        safe1 = safe2 = safe3 = safe4 = None
+    # def __check(self, str_int, stf_int, board, threat, opp_col, k=1):
+    #     """
+    #     Utility function for the bishop and rook safety checks.
+    #     k is set to 1 for the bishop. However, in order to be 
+    #     able to check same file and rank for the rook, we pass
+    #     it in as 0.
+    #     """
+    #     safe1 = safe2 = safe3 = safe4 = None
 
-        def check(safe, i, j):
-            if 0 <= str_int + i <= 7 and 0 <= stf_int + j <= 7 and \
-                    isinstance(board[str_int + i][stf_int + j], Piece):
-                p = board[str_int + i][stf_int + j]
-                # print(f"{type(p)=} {threat=} {opp_col=} {p.colour=}")
-                if type(p) in threat and p.colour == opp_col:
-                    safe = False if safe is None else safe
-                else:
-                    safe = True if safe is None else safe
-            return safe
+    #     def check(safe, i, j):
+    #         if 0 <= str_int + i <= 7 and 0 <= stf_int + j <= 7 and \
+    #                 isinstance(board[str_int + i][stf_int + j], Piece):
+    #             p = board[str_int + i][stf_int + j]
+    #             # print(f"{type(p)=} {threat=} {opp_col=} {p.colour=}")
+    #             if type(p) in threat and p.colour == opp_col:
+    #                 safe = False if safe is None else safe
+    #             else:
+    #                 safe = True if safe is None else safe
+    #         return safe
 
-        for i in range(1, 8):
-            safe1 = check(safe1, -i, -i*k)
-            safe2 = check(safe2, -i*k, i)
-            safe3 = check(safe3, i*k, -i)
-            safe4 = check(safe4, i, i*k)
-            if safe1 == safe2 == safe3 == safe4 == True:
-                return True
-        return safe1 != False and safe2 != False and safe3 != False and safe4 != False
+    #     for i in range(1, 8):
+    #         safe1 = check(safe1, -i, -i*k)
+    #         safe2 = check(safe2, -i*k, i)
+    #         safe3 = check(safe3, i*k, -i)
+    #         safe4 = check(safe4, i, i*k)
+    #         if safe1 == safe2 == safe3 == safe4 == True:
+    #             return True
+    #     return safe1 != False and safe2 != False and safe3 != False and safe4 != False
 
-    def _king_safe_from_bishop(self, stf_int, str_int, king_colour, board):
-        # print("checking king safety from bishop")
-        threat = [Bishop, Queen]
-        opp_col = 'black' if king_colour == 'white' else 'white'
-        return self.__check(str_int, stf_int, board, threat, opp_col)
+    # def _king_safe_from_bishop(self, stf_int, str_int, king_colour, board):
+    #     # print("checking king safety from bishop")
+    #     threat = [Bishop, Queen]
+    #     opp_col = 'black' if king_colour == 'white' else 'white'
+    #     return self.__check(str_int, stf_int, board, threat, opp_col)
 
-    def _king_safe_from_rook(self, stf_int, str_int, king_colour, board):
-        # print("checking king safety from rook")
-        threat = [Rook, Queen]
-        opp_col = 'black' if king_colour == 'white' else 'white'
-        return self.__check(str_int, stf_int, board, threat, opp_col, k=0)
+    # def _king_safe_from_rook(self, stf_int, str_int, king_colour, board):
+    #     # print("checking king safety from rook")
+    #     threat = [Rook, Queen]
+    #     opp_col = 'black' if king_colour == 'white' else 'white'
+    #     return self.__check(str_int, stf_int, board, threat, opp_col, k=0)
 
-    def _king_safe_from_queen(self, stf_int, str_int, king_colour, board):
-        # print("checking king safety from queen")
-        return (self._king_safe_from_bishop(stf_int, str_int, king_colour, board) and
-                self._king_safe_from_rook(stf_int, str_int, king_colour, board))
+    # def _king_safe_from_queen(self, stf_int, str_int, king_colour, board):
+    #     # print("checking king safety from queen")
+    #     return (self._king_safe_from_bishop(stf_int, str_int, king_colour, board) and
+    #             self._king_safe_from_rook(stf_int, str_int, king_colour, board))
 
-    def _is_safe(self, stf_int, str_int, king_colour, board, kings_positions, flipped):
-        return self._king_safe_from_pawn(stf_int, str_int, king_colour, board, flipped) and \
-            self._king_safe_from_king(stf_int, str_int, kings_positions, king_colour) and \
-            self._king_safe_from_knight(stf_int, str_int, king_colour, board) and \
-            self._king_safe_from_queen(stf_int, str_int, king_colour, board)
+    # def _is_safe(self, stf_int, str_int, king_colour, board, kings_positions, flipped):
+    #     return self._king_safe_from_pawn(stf_int, str_int, king_colour, board, flipped) and \
+    #         self._king_safe_from_king(stf_int, str_int, kings_positions, king_colour) and \
+    #         self._king_safe_from_knight(stf_int, str_int, king_colour, board) and \
+    #         self._king_safe_from_queen(stf_int, str_int, king_colour, board)
 
     def validate_castling(self, sfr_int, sff_int, stf_int, str_int, king_under_check,
-                          king_colour, king_idx, kings_positions, board, flipped, checking_pieces):
+                          king_colour, king_idx, kings_positions, board, flipped, checking_pieces, bad_squares):
 
         opp_col = 'white' if king_colour == 'black' else 'black'
         # print(f"castling privs: {self.can_castle_kingside=} {self.can_castle_queenside=}, {stf_int=}, {sff_int=}")
@@ -163,7 +210,8 @@ class King(Piece):
                 if board[sfr_int][i] != 0:
                     # print(f"************ can't castle cos of occupied square ***************")
                     return False
-                if j < 2 and not self._is_safe(i, str_int, king_colour, board, kings_positions, flipped):
+                if j < 2 and (str_int, i) in bad_squares:
+                # if j < 2 and not self._is_safe(i, str_int, king_colour, board, kings_positions, flipped):
                     # print("************ can't castle cos of threatened square ***************")
                     return False
                 j += 1
@@ -216,9 +264,9 @@ class King(Piece):
         king_idx, opp_col = (
             1, 'black') if self.colour == 'white' else (0, 'white')
 
-        if self.legal_moves is None or flipped:
-            self.get_legal_moves(
-                kings_positions, checking_pieces, board, flipped, king_under_check)
+        # if self.legal_moves is None or flipped:
+        self.get_legal_moves(
+            kings_positions, checking_pieces, board, flipped, king_under_check, opp_active_pieces)
         move_valid = (str_int, stf_int) in self.legal_moves
         self.legal_moves = None
 

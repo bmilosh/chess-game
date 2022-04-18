@@ -407,13 +407,13 @@ class Board(tk.Frame):
                 cell = tk.Label(self, bg=self.board_colours[prev_colour], takefocus=1,
                                 compound='top')
 
-                # # pawns
-                # if rank == 1:
-                #     self.board[7-rank][file] = Pawn(colour="black")
-                # elif rank == 6:
-                #     self.board[7-rank][file] = Pawn(colour="white")
+                # pawns
+                if rank == 1:
+                    self.board[7-rank][file] = Pawn(colour="black")
+                elif rank == 6:
+                    self.board[7-rank][file] = Pawn(colour="white")
                 # rooks
-                if (rank, file) in [(0, 0), (0, 7)]:
+                elif (rank, file) in [(0, 0), (0, 7)]:
                     self.board[7-rank][file] = Rook(colour="black")
                 elif (rank, file) in [(7, 0), (7, 7)]:
                     self.board[7-rank][file] = Rook(colour="white")

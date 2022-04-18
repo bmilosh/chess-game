@@ -28,9 +28,6 @@ class Rook(Piece):
         self.can_castle = True
         self.legal_moves = None
 
-    # def get_legal_moves(self):
-    #     pass
-
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict, board, flipped=False, king_under_check=None) -> list:
         opp_col = "white" if self.colour == "black" else "black"
         king_position = kings_positions[0] if self.colour == "black" else kings_positions[1]
@@ -56,28 +53,6 @@ class Rook(Piece):
             checking_pieces[opp_col].append(
                 (entry, (str_int, stf_int)))
         self.legal_moves = None
-
-    # def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
-    #                          stf_int, str_int, opp_col, entry, board, checking_pieces):
-
-    #     king_rank, king_file = king_position
-    #     not_zero = 0
-    #     temp = board[str_int][stf_int]
-    #     board[str_int][stf_int] = entry
-    #     if str_int == king_rank or stf_int == king_file:
-    #         r_dir, f_dir, fill_value = (
-    #             1, 0, str_int) if str_int == king_rank else (0, 1, stf_int)
-
-    #         min1, max1 = min(str_int, king_rank), max(str_int, king_rank)
-    #         min2, max2 = min(stf_int, king_file), max(stf_int, king_file)
-    #         for r, f in zip_longest(range(min1, max1 + r_dir), range(min2, max2 + f_dir), fillvalue=fill_value):
-    #             if 0 <= r <= 7 and 0 <= f <= 7:
-    #                 if board[r][f] != 0:
-    #                     not_zero += 1
-    #     if not_zero == 1:
-    #         king_under_check[king_idx] = True
-    #         checking_pieces[opp_col].append((entry, (str_int, stf_int)))
-    #     board[str_int][stf_int] = temp
 
     def move(self, square_from: str, square_to: str, kings_positions: list[tuple],
              king_under_check: list[bool],  board: list[list], sqv: SquareValidator,
@@ -117,15 +92,10 @@ class Rook(Piece):
         # if self.legal_moves is None:
         self.get_legal_moves(kings_positions, checking_pieces, board)
         move_valid = (str_int, stf_int) in self.legal_moves
-        # print(f"rook legal moves: {self.legal_moves=}")
-        # print(f"Valid rook move = {move_valid}")
-        # print(f"{str_int=} {stf_int=}")
         self.legal_moves = None
+
         if move_valid:
             opp_col = 'black' if col == 'white' else 'white'
-            # if self.dc.verify_own_king(kings_positions[king_idx],
-            #                            opp_col, sff_int, sfr_int, stf_int, str_int, board, checking_pieces):
-            #     return False
 
             # We've unchecked our king by the previous check.
             # Update the king_under_check status as well as

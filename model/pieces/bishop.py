@@ -33,24 +33,6 @@ class Bishop(Piece):
             self.rank, self.file, king_position, checking_pieces, board, self.dc, opp_col)
         return self.legal_moves
 
-    # def _check_opposing_king(self, king_position: tuple, king_under_check: list[bool], king_idx,
-    #                          stf_int, str_int, opp_col, entry, board, checking_pieces):
-    #     king_rank, king_file = king_position
-    #     temp = board[str_int][stf_int]
-    #     board[str_int][stf_int] = entry
-    #     if abs(str_int - king_rank) == abs(stf_int - king_file):
-    #         f_dir = 1 if king_file > stf_int else -1
-    #         r_dir = 1 if king_rank > str_int else -1
-    #         not_zero = 0
-    #         for r, f in zip(range(str_int+r_dir, king_rank+r_dir, r_dir), range(stf_int+f_dir, king_file+f_dir, f_dir)):
-    #             if board[r][f] != 0:
-    #                 not_zero += 1
-    #         if not_zero == 1:
-    #             king_under_check[king_idx] = True
-    #             checking_pieces[opp_col].append(
-    #                 (entry, (str_int, stf_int)))
-    #     board[str_int][stf_int] = temp
-
     def _check_opposing_king(self, kings_positions, king_position: tuple, king_under_check: list[bool], king_idx,
                              stf_int, str_int, opp_col, entry, board, checking_pieces):
         self.rank, self.file = str_int, stf_int
@@ -61,20 +43,6 @@ class Bishop(Piece):
             checking_pieces[opp_col].append(
                 (entry, (str_int, stf_int)))
         self.legal_moves = None
-        # temp = board[str_int][stf_int]
-        # board[str_int][stf_int] = entry
-        # if abs(str_int - king_rank) == abs(stf_int - king_file):
-        #     f_dir = 1 if king_file > stf_int else -1
-        #     r_dir = 1 if king_rank > str_int else -1
-        #     not_zero = 0
-        #     for r, f in zip(range(str_int+r_dir, king_rank+r_dir, r_dir), range(stf_int+f_dir, king_file+f_dir, f_dir)):
-        #         if board[r][f] != 0:
-        #             not_zero += 1
-        #     if not_zero == 1:
-        #         king_under_check[king_idx] = True
-        #         checking_pieces[opp_col].append(
-        #             (entry, (str_int, stf_int)))
-        # board[str_int][stf_int] = temp
 
     def move(self, square_from: str, square_to: str, kings_positions: list[tuple],
              king_under_check: list[bool], board: list[list], sqv: SquareValidator,

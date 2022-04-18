@@ -40,9 +40,6 @@ class Queen(Piece):
 
         king_idx, opp_col = (
             0, 'white') if self.colour == 'black' else (1, 'black')
-        # print(f"queen's colour: {self.colour}")
-        # print(f"queen's bishop colour: {self.bishop.colour}")
-        # print(f"queen's rook colour: {self.rook.colour}")
         if king_under_check[king_idx] and checking_pieces is not None and len(checking_pieces[self.colour]) > 1:
             return False
 

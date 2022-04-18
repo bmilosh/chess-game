@@ -213,8 +213,13 @@ class Board(tk.Frame):
             # print()
 
     def show_mate(self, king: King, active_pieces: list, colour):
-        if self.mate_checker.is_checkmate(king, self.checking_pieces, active_pieces, self.kings_positions,
-                                          self.king_under_check, colour, self.flipped):
+        if colour == 'white':
+            mate = self.mate_checker.is_checkmate(king, self.checking_pieces, active_pieces, self.kings_positions,
+                                          self.king_under_check, colour, self.board, self.black_active_pieces, self.flipped)
+        else:
+            mate = self.mate_checker.is_checkmate(king, self.checking_pieces, active_pieces, self.kings_positions,
+                                          self.king_under_check, colour, self.board, self.white_active_pieces, self.flipped)
+        if mate:
             print("**************** There's a checkmate on the board!!! ****************")
 
     def show_checked_king(self):

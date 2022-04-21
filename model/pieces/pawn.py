@@ -15,13 +15,13 @@ class Pawn(Piece):
     """
 
     def __init__(self, colour: str = None) -> None:
-        self.dc = DiscoveredChecks()
-        self.sog = SquareOccupantGetter()
+        # self.dc = DiscoveredChecks()
+        # self.sog = SquareOccupantGetter()
         self.colour = colour
-        self.rank = None
-        self.file = None
+        # self.rank = None
+        # self.file = None
         self.name = 'pawn'
-        self.legal_moves = None
+        # self.legal_moves = None
 
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict, board, flipped=False, king_under_check=None) -> list:
         def get_occ(r, f):

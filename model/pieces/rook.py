@@ -19,14 +19,14 @@ class Rook(Piece):
     """
 
     def __init__(self, colour: str = None) -> None:
-        self.dc = DiscoveredChecks()
+        # self.dc = DiscoveredChecks()
         self.bandr_mgtr = BishopAndRookMovesGetter()
         self.colour = colour
-        self.rank = None
-        self.file = None
+        # self.rank = None
+        # self.file = None
         self.name = 'rook'
         self.can_castle = True
-        self.legal_moves = None
+        # self.legal_moves = None
 
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict, board, flipped=False, king_under_check=None) -> list:
         opp_col = "white" if self.colour == "black" else "black"

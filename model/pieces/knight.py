@@ -15,12 +15,12 @@ class Knight(Piece):
     """
 
     def __init__(self, colour: str = None) -> None:
-        self.dc = DiscoveredChecks()
+        # self.dc = DiscoveredChecks()
         self.colour = colour
-        self.rank = None
-        self.file = None
+        # self.rank = None
+        # self.file = None
         self.name = 'knight'
-        self.legal_moves = None
+        # self.legal_moves = None
 
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict, board, flipped=False, king_under_check=None):
         self.legal_moves = []
@@ -31,7 +31,7 @@ class Knight(Piece):
                 r_diff, f_diff = self.rank - r, self.file - f
                 if r_diff not in range(8) or f_diff not in range(8):
                     continue
-                occ = SquareOccupantGetter().get_square_occupant(board, r_diff, f_diff, opp_col)
+                occ = self.sog.get_square_occupant(board, r_diff, f_diff, opp_col)
                 if occ == -1:
                     continue
                 if self.dc.verify_own_king(king_position, opp_col, self.file, self.rank,

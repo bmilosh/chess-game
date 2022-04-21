@@ -21,14 +21,14 @@ class King(Piece):
     """
 
     def __init__(self, colour: str = None) -> None:
-        self.dc = DiscoveredChecks()
-        self.sog = SquareOccupantGetter()
+        # self.dc = DiscoveredChecks()
+        # self.sog = SquareOccupantGetter()
         self.colour = colour
-        self.rank = None
-        self.file = None
+        # self.rank = None
+        # self.file = None
         self.name = 'king'
         self.can_castle = True
-        self.legal_moves = None
+        # self.legal_moves = None
 
     def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict,
                         board, flipped=False, king_under_check=None, opp_active_pieces: list[Piece]=None) -> list:
@@ -47,10 +47,15 @@ class King(Piece):
 
         for threat in opp_active_pieces:
             if threat.colour == self.colour:
-                raise ValueError(f"Wrong colour active pieces sent. \n{self}, {opp_active_pieces = }")
+                raise ValueError(f"Wrong colour active pieces sent. \n{self = }, {opp_active_pieces = }")
             if isinstance(threat, King) or isinstance(threat, Pawn):
                 continue
             bad_squares |= set(threat.get_legal_moves(kings_positions, checking_pieces, board))
+
+        for pair in temp_dict:
+            r, f = pair
+            board[r][f] = temp_dict[pair]
+        temp_dict.clear()
 
         # pos_squares = set((self.rank+i, self.file+j) for i in rng for j in rng if self.rank+i in range(8) and self.file+j in range(8) and i+j != 0)
         good_squares = pos_squares - bad_squares
@@ -70,11 +75,6 @@ class King(Piece):
         check_castling(-2)
         # print(f"good squares are: {good_squares = }")
         self.legal_moves = list(good_squares)
-        # print(f"legal moves: {self.legal_moves = }")
-        for pair in temp_dict:
-            r, f = pair
-            board[r][f] = temp_dict[pair]
-        temp_dict.clear()
         return self.legal_moves
 
     # def get_legal_moves(self, kings_positions: list[tuple], checking_pieces: dict,

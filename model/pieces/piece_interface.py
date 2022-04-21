@@ -1,14 +1,23 @@
 from abc import ABC, abstractmethod
+from model.discovered_checks import DiscoveredChecks
+from model.square_occ_getter import SquareOccupantGetter
+# from model.square_validator import SquareValidator
 
 
-class Piece(ABC):
-    colour: str = None
+class PieceInterface(ABC):
+    pass
 
-    @abstractmethod
+
+class Piece(PieceInterface):
+    dc = DiscoveredChecks()
+    sog = SquareOccupantGetter()
+    rank: int = None
+    file: int = None
+    legal_moves: list = None
+
     def move(self):
         pass
 
-    @abstractmethod
     def get_legal_moves(self):
         pass
 

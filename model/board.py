@@ -1,4 +1,5 @@
 
+from email.mime import image
 import tkinter as tk
 
 from PIL import Image, ImageTk
@@ -12,6 +13,7 @@ from model.pieces.pawn import Pawn
 from model.pieces.queen import Queen
 from model.pieces.rook import Rook
 from model.square_validator import SquareValidator
+from model.computer import Computer
 
 SQUARE_RATIO = 1/8
 
@@ -112,7 +114,9 @@ class Board(tk.Frame):
         else:
             self._add_labels()
         # self.lmg_getter = LegalMovesGetter(self.board)
+
         self.mate_checker = CheckmateChecker()
+        self.computer = Computer("black", self.black_active_pieces)
 
     def reconfigure_labels(self):
         for r in range(8):
@@ -173,6 +177,34 @@ class Board(tk.Frame):
         if not rank and not file:
             return "!label"
         return f"!label{(rank*8) + file + 1}"
+
+    def show_computer_move(self, move: tuple):
+        piece, new_pos = move
+        old_lab = self.get_label_from_rank_and_file(piece.rank, piece.file)
+        new_lab = self.get_label_from_rank_and_file(*new_pos)
+        n = piece.colour + ' ' + piece.name
+        img = self.img_dict[n]
+        old_widget = self.children[old_lab]
+        old_widget.configure(image='')
+        new_widget = self.children[new_lab]
+        new_widget.configure(image=img)
+        self.board[piece.rank][piece.file] = 0
+        self.board[new_pos[0]][new_pos[1]] = piece
+        piece.rank, piece.file = new_pos
+        self.show_checked_king()
+        self.show_unchecked_king()
+        self.update_king_position(piece, new_pos, new_widget)
+
+        self.last_move_by ^= 1
+
+    def get_computer_move(self):
+        move = self.computer.make_move(self.kings_positions, self.checking_pieces, self.board,\
+                        self.flipped, self.king_under_check, self.white_active_pieces)
+        if move:
+            print(f"Valid computer move: {move = }")
+            self.show_computer_move(move)
+        else:
+            print(f"Invalid computer move: {move = }")
 
     def update_previous_move_list(self, w: tk.Widget):
         self.previous_move.append(w)
@@ -312,6 +344,8 @@ class Board(tk.Frame):
             self.moving_img = ''
             self.unshow_legal_moves()
             self.legal_moves.clear()
+
+            self.get_computer_move()
 
     def update_active_pieces(self, rank, file, promoted_piece=None, rank_from=None, file_from=None):
         """

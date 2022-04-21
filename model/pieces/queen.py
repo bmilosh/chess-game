@@ -16,12 +16,12 @@ class Queen(Piece):
     """
 
     def __init__(self, colour: str = None) -> None:
-        self.dc = DiscoveredChecks()
+        # self.dc = DiscoveredChecks()
         self.colour = colour
-        self.rank = None
-        self.file = None
+        # self.rank = None
+        # self.file = None
         self.name = 'queen'
-        self.legal_moves = None
+        # self.legal_moves = None
         self.bishop = Bishop(self.colour)
         self.rook = Rook(self.colour)
         self.bishop.rank, self.bishop.file = self.rank, self.file

@@ -1,4 +1,4 @@
-from model.pieces.piece_interface import Piece
+from model.pieces.piece_interface import PieceInterface
 
 class SquareValidator:
     def single_square_validator(self, square: str) -> tuple[bool,str]:
@@ -22,7 +22,7 @@ class SquareValidator:
         # print(f"{square_to_occupant=}")
         # # print(f"same colour = {square_from_occupant.colour == square_to_occupant.colour}")
         
-        if isinstance(square_from_occupant, Piece) and isinstance(square_to_occupant, Piece):
+        if isinstance(square_from_occupant, PieceInterface) and isinstance(square_to_occupant, PieceInterface):
             # print(f"same colour = {square_from_occupant.colour == square_to_occupant.colour}")
             if square_from_occupant.colour == square_to_occupant.colour:
                 square_to_occupant = -1

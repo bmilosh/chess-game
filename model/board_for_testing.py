@@ -1,4 +1,3 @@
-
 from model.pieces.bishop import Bishop
 from model.pieces.king import King
 from model.pieces.knight import Knight
@@ -13,46 +12,44 @@ class Board:
         self.white_active_pieces = []
         self.black_active_pieces = []
         for rank in range(7, -1, -1):
-            # if rank == 1:
-            #     self.board[7-rank] = ['b_pa'] * 8
-            # elif rank == 6:
-            #     self.board[7-rank] = ['w_pa'] * 8
             for file in range(8):
                 if rank == 1:
-                    self.board[7-rank][file] = Pawn(colour="black")
+                    self.board[7 - rank][file] = Pawn(colour="black")
                 elif rank == 6:
-                    self.board[7-rank][file] = Pawn(colour="white")
+                    self.board[7 - rank][file] = Pawn(colour="white")
                 # rooks
                 if (rank, file) in [(0, 0), (0, 7)]:
-                    self.board[7-rank][file] = Rook(colour="black")
+                    self.board[7 - rank][file] = Rook(colour="black")
                 elif (rank, file) in [(7, 0), (7, 7)]:
-                    self.board[7-rank][file] = Rook(colour="white")
+                    self.board[7 - rank][file] = Rook(colour="white")
                 # knights
                 elif (rank, file) in [(0, 1), (0, 6)]:
-                    self.board[7-rank][file] = Knight(colour="black")
+                    self.board[7 - rank][file] = Knight(colour="black")
                 elif (rank, file) in [(7, 1), (7, 6)]:
-                    self.board[7-rank][file] = Knight(colour="white")
+                    self.board[7 - rank][file] = Knight(colour="white")
                 # bishops
                 elif (rank, file) in [(0, 2), (0, 5)]:
-                    self.board[7-rank][file] = Bishop(colour="black")
+                    self.board[7 - rank][file] = Bishop(colour="black")
                 elif (rank, file) in [(7, 2), (7, 5)]:
-                    self.board[7-rank][file] = Bishop(colour="white")
+                    self.board[7 - rank][file] = Bishop(colour="white")
                 # queens
                 elif (rank, file) == (0, 3):
-                    self.board[7-rank][file] = Queen(colour="black")
+                    self.board[7 - rank][file] = Queen(colour="black")
                 elif (rank, file) == (7, 3):
-                    self.board[7-rank][file] = Queen(colour="white")
+                    self.board[7 - rank][file] = Queen(colour="white")
                 # kings
                 elif (rank, file) == (0, 4):
-                    self.board[7-rank][file] = King(colour="black")
+                    self.board[7 - rank][file] = King(colour="black")
                 elif (rank, file) == (7, 4):
-                    self.board[7-rank][file] = King(colour="white")
+                    self.board[7 - rank][file] = King(colour="white")
 
-                if self.board[7-rank][file]:
-                    p = self.board[7-rank][file]
-                    if p.colour == 'white':
+                if self.board[7 - rank][file]:
+                    p = self.board[7 - rank][file]
+                    if p.colour == "white":
                         self.white_active_pieces.append(p)
                     else:
                         self.black_active_pieces.append(p)
-                    self.board[7-rank][file].rank, self.board[7 -
-                                                              rank][file].file = 7-rank, file
+                    self.board[7 - rank][file].rank, self.board[7 - rank][file].file = (
+                        7 - rank,
+                        file,
+                    )

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
+
 from model.discovered_checks import DiscoveredChecks
 from model.square_occ_getter import SquareOccupantGetter
-# from model.square_validator import SquareValidator
 
 
 class PieceInterface(ABC):
@@ -23,7 +23,6 @@ class Piece(PieceInterface):
 
 
 class RookInterface(ABC):
-
     @abstractmethod
     def _check_opposing_king(self):
         pass
@@ -34,7 +33,6 @@ class RookInterface(ABC):
 
 
 class BishopInterface(ABC):
-
     @abstractmethod
     def _check_opposing_king(self):
         pass

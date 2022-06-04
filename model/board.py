@@ -46,6 +46,10 @@ class Board(tk.Frame):
     # Square validator
     sqv = SquareValidator()
 
+    ################################################
+    ################ Init methods ##################
+    ################################################
+
     def __init__(self, parent: tk.Tk):
         tk.Frame.__init__(self, parent)
         self.parent = parent
@@ -153,27 +157,129 @@ class Board(tk.Frame):
                 col = self.board_colours[(r + f) % 2]
                 self.children[name].configure(bg=col, image=self.img_dict[img_key])
 
-    def verify_move(self, board_entry: str, square_from: str, square_to: str):
-        ap = self.get_active_pieces(board_entry.colour)
-        return board_entry.move(
-            square_from,
-            square_to,
-            self.kings_positions,
-            self.king_under_check,
-            self.board,
-            self.sqv,
-            flipped=self.flipped,
-            checking_pieces=self.checking_pieces,
-            last_moved_pawn=self.last_moved_pawn,
-            opp_active_pieces=ap,
-            queen_move=None,
-        )
+    ################################################
+    ################ Setter methods ################
+    ################################################
+
+    def update_active_pieces(
+        self, rank, file, promoted_piece=None, rank_from=None, file_from=None
+    ):
+        """
+        Called before updating the board.
+        Only called when the move is legal."""
+        p = self.board[rank][file]
+        if p and promoted_piece is None:
+            active_pieces = self.get_active_pieces(p.colour, True)
+            active_pieces.remove(p)
+        if promoted_piece is not None:
+            print(f"we're promoting?? {promoted_piece=}")
+            active_pieces = self.get_active_pieces(promoted_piece.colour, True)
+            active_pieces.append(promoted_piece)
+            active_pieces.remove(self.board[rank_from][file_from])
+
+    def update_board(
+        self, w: tk.Widget, rank, file, rank_from, file_from, last_moved_piece
+    ):
+        if (
+            self.last_moved_pawn is not None
+            and last_moved_piece.name == "pawn"
+            and rank_from == self.last_moved_pawn.rank
+            and abs(self.last_moved_pawn.file - file_from) == 1
+            and file == self.last_moved_pawn.file
+            and abs(rank - self.last_moved_pawn.rank) == 1
+        ):
+            # Last move was an en passant. Hence, we make sure to
+            # remove the "captured" piece from display and also from
+            # the list representation of the board.
+            # For this to work correctly, it is essential that it is
+            # done before calling the update_last_moved_pawn method.
+            passanted_lab = self.get_label_from_rank_and_file(
+                self.last_moved_pawn.rank, self.last_moved_pawn.file
+            )
+            passanted_wid = self.children[passanted_lab]
+            passanted_wid.configure(image="")
+            self.board[self.last_moved_pawn.rank][self.last_moved_pawn.file] = 0
+
+        if rank in [0, 7] and last_moved_piece.name == "pawn":
+            # Handles promotion (to queen for now)
+            # last_moved_piece.colour + '_queen'
+            last_moved_piece = Queen(colour=last_moved_piece.colour)
+            last_moved_piece.rank, last_moved_piece.file = rank, file
+            self.update_active_pieces(
+                rank,
+                file,
+                promoted_piece=last_moved_piece,
+                rank_from=rank_from,
+                file_from=file_from,
+            )
+            img_key = f"{last_moved_piece.colour} queen"
+            w.configure(image=self.img_dict[img_key])  # ,
+            # bg=self.clicked_or_released_colour[(rank+file) % 2])
+        else:
+            w.configure(image=self.moving_img)  # ,
+            # bg=self.clicked_or_released_colour[(rank+file) % 2])
+        self.board[rank][file] = last_moved_piece
+        self.moving_label.configure(image="")
+        self.board[rank_from][file_from] = 0
+
+    def update_castling_options(
+        self, sq_frm_rnk, sq_frm_fil, sq_to_rnk, sq_to_fil, last_moved_piece
+    ):
+        """
+        Called only if the move is valid"""
+        if last_moved_piece.name == "king":
+            # Works as long as the castling rights are correctly updated
+            r_diff = sq_frm_rnk - sq_to_rnk
+            f_diff = sq_frm_fil - sq_to_fil
+            if abs(r_diff) == 0 and abs(f_diff) == 2:
+                # we're castling, and the move has already been validated to be correct,
+                # so we need to display this move on the board
+                self.display_castle(sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece)
+            else:
+                last_moved_piece.can_castle = False
+
+    def update_previous_move_list(self, w: tk.Widget):
+        self.previous_move.append(w)
+        end = 2 if len(self.previous_move) == 4 else 0
+        for i in range(end):
+            # Restore their original colour
+            self.restore_label_colour(self.previous_move[i])
+        for j in range(end, len(self.previous_move)):
+            # Give it a clicked_or_released colour
+            self.restore_label_colour(self.previous_move[j], previous=True)
+        self.previous_move = self.previous_move[end:]
+
+    def update_king_position(self, last_moved_piece: str, new_position: tuple, widget):
+        if last_moved_piece.name == "king":
+            king_idx = 0 if last_moved_piece.colour == "black" else 1
+            # Assumes that the previous king move was valid.
+            self.restore_label_colour(self.kings_widgets[king_idx], True)
+            self.kings_positions[king_idx] = new_position
+            self.kings_widgets[king_idx] = widget
 
     def update_last_moved_pawn(self, last_moved_piece):
         if isinstance(last_moved_piece, Pawn):
             self.last_moved_pawn = last_moved_piece
         else:
             self.last_moved_pawn = None
+
+    def do_updates(self, w: tk.Widget, rank_to, file_to, rank_from, file_from, entry):
+        """
+        The order in which these updates are done is important.
+        In some cases, an update works on the assumption that
+        a particular update has not yet been carried out.
+        Hence, changing this order could result in a malfunction.
+        """
+        self.update_active_pieces(rank_to, file_to)
+        self.update_board(w, rank_to, file_to, rank_from, file_from, entry)
+        self.update_castling_options(rank_from, file_from, rank_to, file_to, entry)
+        self.update_previous_move_list(w)
+        self.update_king_position(entry, (rank_to, file_to), w)
+        self.update_last_moved_pawn(entry)
+
+    ################################################
+    ################ Getter methods ################
+    ################################################
 
     def get_active_pieces(self, colour, same_colour=False):
         if same_colour:
@@ -213,6 +319,25 @@ class Board(tk.Frame):
             return "!label"
         return f"!label{(rank*8) + file + 1}"
 
+    def get_computer_move(self):
+        move = self.computer.make_move(
+            self.kings_positions,
+            self.checking_pieces,
+            self.board,
+            self.flipped,
+            self.king_under_check,
+            self.white_active_pieces,
+        )
+        if move:
+            print(f"Valid computer move: {move = }")
+            self.show_computer_move(move)
+        else:
+            print(f"Invalid computer move: {move = }")
+
+    #################################################
+    ################ Show-er methods ################
+    #################################################
+
     def show_computer_move(self, move: tuple):
         piece, new_pos = move
         old_lab = self.get_label_from_rank_and_file(piece.rank, piece.file)
@@ -240,54 +365,6 @@ class Board(tk.Frame):
         self.last_move_by ^= 1
         self.moving_img = ""
         self.moving_label = None
-
-    def do_updates(self, w: tk.Widget, rank_to, file_to, rank_from, file_from, entry):
-        """
-        The order in which these updates are done is important.
-        In some cases, an update works on the assumption that
-        a particular update has not yet been carried out.
-        Hence, changing this order could result in a malfunction.
-        """
-        self.update_active_pieces(rank_to, file_to)
-        self.update_board(w, rank_to, file_to, rank_from, file_from, entry)
-        self.update_castling_options(rank_from, file_from, rank_to, file_to, entry)
-        self.update_previous_move_list(w)
-        self.update_king_position(entry, (rank_to, file_to), w)
-        self.update_last_moved_pawn(entry)
-
-    def get_computer_move(self):
-        move = self.computer.make_move(
-            self.kings_positions,
-            self.checking_pieces,
-            self.board,
-            self.flipped,
-            self.king_under_check,
-            self.white_active_pieces,
-        )
-        if move:
-            print(f"Valid computer move: {move = }")
-            self.show_computer_move(move)
-        else:
-            print(f"Invalid computer move: {move = }")
-
-    def update_previous_move_list(self, w: tk.Widget):
-        self.previous_move.append(w)
-        end = 2 if len(self.previous_move) == 4 else 0
-        for i in range(end):
-            # Restore their original colour
-            self.restore_label_colour(self.previous_move[i])
-        for j in range(end, len(self.previous_move)):
-            # Give it a clicked_or_released colour
-            self.restore_label_colour(self.previous_move[j], previous=True)
-        self.previous_move = self.previous_move[end:]
-
-    def update_king_position(self, last_moved_piece: str, new_position: tuple, widget):
-        if last_moved_piece.name == "king":
-            king_idx = 0 if last_moved_piece.colour == "black" else 1
-            # Assumes that the previous king move was valid.
-            self.restore_label_colour(self.kings_widgets[king_idx], True)
-            self.kings_positions[king_idx] = new_position
-            self.kings_widgets[king_idx] = widget
 
     def show_legal_moves(self):
         for r, f in self.legal_moves:
@@ -351,6 +428,34 @@ class Board(tk.Frame):
         if not self.king_under_check[self.last_move_by ^ 1]:
             self.restore_label_colour(self.kings_widgets[self.last_move_by ^ 1])
 
+    def display_castle(self, sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece):
+        new_rook_file, file = (sq_to_fil + 1, 0) if f_diff > 0 else (sq_to_fil - 1, 7)
+        old_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, file)
+        new_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, new_rook_file)
+        rook = last_moved_piece.colour + " rook"
+        self.children[old_rook_lab].configure(image="")
+        self.children[new_rook_lab].configure(image=self.img_dict[rook])
+        self.board[sq_frm_rnk][new_rook_file], self.board[sq_frm_rnk][file] = (
+            self.board[sq_frm_rnk][file],
+            0,
+        )
+        self.board[sq_frm_rnk][new_rook_file].can_castle = False
+        self.board[sq_frm_rnk][new_rook_file].file = new_rook_file
+        last_moved_piece.can_castle = False
+
+    ################################################
+    ################ Click handlers ################
+    ################################################
+
+    def single_click(self, event: tk.Event):
+        w = event.widget
+        n = str(w)
+        rank, file = self.get_rank_and_file_from_label(n)
+        if self.moving_label is None:
+            self.handle_first_click(rank, file, w)
+        else:
+            self.handle_second_click(rank, file, w)
+
     def handle_first_click(self, rank, file, w):
         try:
             p = self.board[rank][file]
@@ -409,119 +514,9 @@ class Board(tk.Frame):
             # # Toggle this to play against the computer
             # self.get_computer_move()
 
-    def update_active_pieces(
-        self, rank, file, promoted_piece=None, rank_from=None, file_from=None
-    ):
-        """
-        Called before updating the board.
-        Only called when the move is legal."""
-        p = self.board[rank][file]
-        if p and promoted_piece is None:
-            active_pieces = self.get_active_pieces(p.colour, True)
-            active_pieces.remove(p)
-        if promoted_piece is not None:
-            print(f"we're promoting?? {promoted_piece=}")
-            active_pieces = self.get_active_pieces(promoted_piece.colour, True)
-            active_pieces.append(promoted_piece)
-            active_pieces.remove(self.board[rank_from][file_from])
-
-    def update_board(
-        self, w: tk.Widget, rank, file, rank_from, file_from, last_moved_piece
-    ):
-        if (
-            self.last_moved_pawn is not None
-            and last_moved_piece.name == "pawn"
-            and rank_from == self.last_moved_pawn.rank
-            and abs(self.last_moved_pawn.file - file_from) == 1
-            and file == self.last_moved_pawn.file
-            and abs(rank - self.last_moved_pawn.rank) == 1
-        ):
-            # Last move was an en passant. Hence, we make sure to
-            # remove the "captured" piece from display and also from
-            # the list representation of the board.
-            # For this to work correctly, it is essential that it is
-            # done before calling the update_last_moved_pawn method.
-            passanted_lab = self.get_label_from_rank_and_file(
-                self.last_moved_pawn.rank, self.last_moved_pawn.file
-            )
-            passanted_wid = self.children[passanted_lab]
-            passanted_wid.configure(image="")
-            self.board[self.last_moved_pawn.rank][self.last_moved_pawn.file] = 0
-
-        if rank in [0, 7] and last_moved_piece.name == "pawn":
-            # Handles promotion (to queen for now)
-            # last_moved_piece.colour + '_queen'
-            last_moved_piece = Queen(colour=last_moved_piece.colour)
-            last_moved_piece.rank, last_moved_piece.file = rank, file
-            self.update_active_pieces(
-                rank,
-                file,
-                promoted_piece=last_moved_piece,
-                rank_from=rank_from,
-                file_from=file_from,
-            )
-            img_key = f"{last_moved_piece.colour} queen"
-            w.configure(image=self.img_dict[img_key])  # ,
-            # bg=self.clicked_or_released_colour[(rank+file) % 2])
-        else:
-            w.configure(image=self.moving_img)  # ,
-            # bg=self.clicked_or_released_colour[(rank+file) % 2])
-        self.board[rank][file] = last_moved_piece
-        self.moving_label.configure(image="")
-        self.board[rank_from][file_from] = 0
-
-    def display_castle(self, sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece):
-        new_rook_file, file = (sq_to_fil + 1, 0) if f_diff > 0 else (sq_to_fil - 1, 7)
-        old_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, file)
-        new_rook_lab = self.get_label_from_rank_and_file(sq_frm_rnk, new_rook_file)
-        rook = last_moved_piece.colour + " rook"
-        self.children[old_rook_lab].configure(image="")
-        self.children[new_rook_lab].configure(image=self.img_dict[rook])
-        self.board[sq_frm_rnk][new_rook_file], self.board[sq_frm_rnk][file] = (
-            self.board[sq_frm_rnk][file],
-            0,
-        )
-        self.board[sq_frm_rnk][new_rook_file].can_castle = False
-        self.board[sq_frm_rnk][new_rook_file].file = new_rook_file
-        last_moved_piece.can_castle = False
-
-    def update_castling_options(
-        self, sq_frm_rnk, sq_frm_fil, sq_to_rnk, sq_to_fil, last_moved_piece
-    ):
-        """
-        Called only if the move is valid"""
-        if last_moved_piece.name == "king":
-            # Works as long as the castling rights are correctly updated
-            r_diff = sq_frm_rnk - sq_to_rnk
-            f_diff = sq_frm_fil - sq_to_fil
-            if abs(r_diff) == 0 and abs(f_diff) == 2:
-                # we're castling, and the move has already been validated to be correct,
-                # so we need to display this move on the board
-                self.display_castle(sq_frm_rnk, sq_to_fil, f_diff, last_moved_piece)
-            else:
-                last_moved_piece.can_castle = False
-
-    def single_click(self, event: tk.Event):
-        w = event.widget
-        n = str(w)
-        rank, file = self.get_rank_and_file_from_label(n)
-        if self.moving_label is None:
-            self.handle_first_click(rank, file, w)
-        else:
-            self.handle_second_click(rank, file, w)
-
-    def restore_label_colour(self, w: tk.Label, previous=False):
-        n = str(w)
-        r, f = self.get_rank_and_file_from_label(n)
-        if (
-            w in self.kings_widgets
-            and self.king_under_check[self.kings_widgets.index(w)]
-        ):
-            self.show_checked_king()
-        elif w in self.previous_move and previous:
-            w.configure(bg=self.clicked_or_released_colour[(r + f) % 2])
-        else:
-            w.configure(bg=self.board_colours[(r + f) % 2])
+    ################################################
+    ################ Focus handlers ################
+    ################################################
 
     def enter_focus(self, event: tk.Event):
         w = event.widget
@@ -550,6 +545,39 @@ class Board(tk.Frame):
                 or not self.king_under_check[self.kings_widgets.index(w)]
             ):
                 self.restore_label_colour(w)
+
+    ########################################
+    ################ Others ################
+    ########################################
+
+    def verify_move(self, board_entry: str, square_from: str, square_to: str):
+        ap = self.get_active_pieces(board_entry.colour)
+        return board_entry.move(
+            square_from,
+            square_to,
+            self.kings_positions,
+            self.king_under_check,
+            self.board,
+            self.sqv,
+            flipped=self.flipped,
+            checking_pieces=self.checking_pieces,
+            last_moved_pawn=self.last_moved_pawn,
+            opp_active_pieces=ap,
+            queen_move=None,
+        )
+
+    def restore_label_colour(self, w: tk.Label, previous=False):
+        n = str(w)
+        r, f = self.get_rank_and_file_from_label(n)
+        if (
+            w in self.kings_widgets
+            and self.king_under_check[self.kings_widgets.index(w)]
+        ):
+            self.show_checked_king()
+        elif w in self.previous_move and previous:
+            w.configure(bg=self.clicked_or_released_colour[(r + f) % 2])
+        else:
+            w.configure(bg=self.board_colours[(r + f) % 2])
 
     def _add_labels(self):
         # self.bind_class('Label', '<Double-Button-1>', self.double_click)
